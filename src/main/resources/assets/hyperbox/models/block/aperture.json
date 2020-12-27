@@ -1,0 +1,19 @@
+{
+	"parent": "block/block",
+	"elements": 
+	[
+        {
+			"from": [ 0, 0, 0 ],
+			"to": [ 16, 16, 0 ],
+            "faces":
+            {
+            	"north": { "texture": "#all", "cullface": "north" }
+            }
+		}
+	],
+	"textures": 
+	{
+		"all": "hyperbox:block/hyperbox",
+		"particle": "hyperbox:block/hyperbox"
+	}
+}

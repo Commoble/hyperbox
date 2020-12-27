@@ -1,0 +1,34 @@
+{
+	"variants": 
+	{
+		"facing=east": 
+		{
+			"model": "hyperbox:block/aperture",
+			"y": 90
+		},
+		"facing=north": 
+		{
+			"model": "hyperbox:block/aperture"
+		},
+		"facing=south": 
+		{
+			"model": "hyperbox:block/aperture",
+			"y": 180
+		},
+		"facing=west": 
+		{
+			"model": "hyperbox:block/aperture",
+			"y": 270
+		},
+		"facing=down":
+		{
+			"model": "hyperbox:block/aperture",
+			"x": 90
+		},
+		"facing=up":
+		{
+			"model": "hyperbox:block/aperture",
+			"x": 270
+		}
+	}
+}

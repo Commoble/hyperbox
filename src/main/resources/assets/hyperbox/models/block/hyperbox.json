@@ -1,0 +1,8 @@
+{
+	"parent": "block/cube_all",
+	"textures": 
+	{
+		"all": "hyperbox:block/hyperbox",
+		"particle": "hyperbox:block/hyperbox"
+	}
+}
