@@ -1,19 +1,13 @@
 {
-	"parent": "block/block",
-	"elements": 
-	[
-        {
-			"from": [ 0, 0, 0 ],
-			"to": [ 16, 16, 0 ],
-            "faces":
-            {
-            	"north": { "texture": "#all", "cullface": "north" }
-            }
-		}
-	],
+	"parent": "block/cube",
 	"textures": 
 	{
-		"all": "hyperbox:block/hyperbox",
+		"up": "hyperbox:block/hyperbox_down",
+		"down": "hyperbox:block/hyperbox_up",
+		"south": "hyperbox:block/hyperbox_north",
+		"north": "hyperbox:block/hyperbox_south",
+		"east": "hyperbox:block/hyperbox_west",
+		"west": "hyperbox:block/hyperbox_east",
 		"particle": "hyperbox:block/hyperbox"
 	}
 }
