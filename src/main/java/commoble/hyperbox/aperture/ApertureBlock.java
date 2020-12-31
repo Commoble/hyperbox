@@ -1,8 +1,11 @@
 package commoble.hyperbox.aperture;
 
+import java.util.Optional;
+
 import commoble.hyperbox.Hyperbox;
 import commoble.hyperbox.SpawnPointHelper;
-import commoble.hyperbox.dimension.DimensionHelper;
+import commoble.hyperbox.box.HyperboxTileEntity;
+import commoble.hyperbox.dimension.DelayedTeleportWorldData;
 import commoble.hyperbox.dimension.HyperboxWorldData;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
@@ -21,6 +24,7 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.BlockRayTraceResult;
 import net.minecraft.util.math.vector.Vector3d;
 import net.minecraft.world.IBlockReader;
+import net.minecraft.world.IWorldReader;
 import net.minecraft.world.World;
 import net.minecraft.world.server.ServerWorld;
 
@@ -102,8 +106,78 @@ public class ApertureBlock extends Block
 				targetPos = parentPos;
 			}
 			targetPos = SpawnPointHelper.getBestSpawnPosition(destinationWorld, targetPos, targetPos.add(-3,-3,-3), targetPos.add(3,3,3));
-			DimensionHelper.sendPlayerToDimension(serverPlayer, destinationWorld, Vector3d.copyCentered(targetPos));
+//			DimensionHelper.sendPlayerToDimension(serverPlayer, destinationWorld, Vector3d.copyCentered(targetPos));
+			DelayedTeleportWorldData.get(serverPlayer.getServerWorld()).addPlayer(serverPlayer, destinationWorld.getDimensionKey(), Vector3d.copyCentered(targetPos));
 		}
 		return ActionResultType.SUCCESS;
+	}
+
+	// called after an adjacent blockstate changes	
+	@Override
+	@Deprecated
+	public void neighborChanged(BlockState thisState, World world, BlockPos thisPos, Block fromBlock, BlockPos fromPos, boolean isMoving)
+	{
+		this.onNeighborUpdated(thisState, world, thisPos, world.getBlockState(fromPos), fromPos);
+		super.neighborChanged(thisState, world, thisPos, fromBlock, fromPos, isMoving);
+	}
+
+	// called when a neighboring te's data changes
+	@Override
+	public void onNeighborChange(BlockState thisState, IWorldReader world, BlockPos thisPos, BlockPos neighborPos)
+	{
+		this.onNeighborUpdated(thisState, world, thisPos, world.getBlockState(neighborPos), neighborPos);
+		// does nothing by default
+		super.onNeighborChange(thisState, world, thisPos, neighborPos);
+	}
+	
+	protected void onNeighborUpdated(BlockState thisState, IBlockReader world, BlockPos thisPos, BlockState neighborState, BlockPos neighborPos)
+	{
+		if (world instanceof ServerWorld)
+		{
+			ServerWorld serverWorld = (ServerWorld)world;
+			// get power from neighbor
+			Direction directionToNeighbor = thisState.get(FACING);
+			int weakPower = neighborState.getWeakPower(world, neighborPos, directionToNeighbor);
+			int strongPower = neighborState.getStrongPower(world, neighborPos, directionToNeighbor);
+			getHyperboxTileEntity(serverWorld,thisPos).ifPresent(te -> {
+				te.updatePower(weakPower, strongPower, directionToNeighbor.getOpposite());
+			});
+		}
+		
+	}
+	
+	@Override
+	public boolean canProvidePower(BlockState state)
+	{
+		return true;
+	}
+
+	@Override
+	public int getWeakPower(BlockState blockState, IBlockReader world, BlockPos pos, Direction sideOfAdjacentBlock)
+	{
+		return ApertureTileEntity.get(world, pos)
+			.map(te -> te.getPower(false))
+			.orElse(0);
+	}
+
+	@Override
+	public int getStrongPower(BlockState blockState, IBlockReader world, BlockPos pos, Direction sideOfAdjacentBlock)
+	{
+		return sideOfAdjacentBlock.getOpposite() == blockState.get(FACING)
+			? ApertureTileEntity.get(world, pos)
+				.map(te -> te.getPower(true))
+				.orElse(0)
+			: 0;
+	}
+	
+	// get the hyperbox TE this aperture's world is linked to
+	public static Optional<HyperboxTileEntity> getHyperboxTileEntity(ServerWorld world, BlockPos thisPos)
+	{
+		MinecraftServer server = world.getServer();
+		HyperboxWorldData data = HyperboxWorldData.getOrCreate(world);
+		BlockPos parentPos = data.getParentPos();
+		RegistryKey<World> parentWorldKey = data.getParentWorld();
+		ServerWorld parentWorld = server.getWorld(parentWorldKey);
+		return HyperboxTileEntity.get(parentWorld, parentPos);
 	}
 }

@@ -5,6 +5,7 @@ import commoble.hyperbox.aperture.ApertureTileEntity;
 import commoble.hyperbox.box.HyperboxBlock;
 import commoble.hyperbox.box.HyperboxTileEntity;
 import commoble.hyperbox.client.ClientProxy;
+import commoble.hyperbox.dimension.DelayedTeleportWorldData;
 import commoble.hyperbox.dimension.HyperboxChunkGenerator;
 import net.minecraft.block.AbstractBlock;
 import net.minecraft.block.Block;
@@ -20,8 +21,11 @@ import net.minecraft.world.Dimension;
 import net.minecraft.world.DimensionType;
 import net.minecraft.world.World;
 import net.minecraft.world.biome.Biome;
+import net.minecraft.world.server.ServerWorld;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.common.MinecraftForge;
+import net.minecraftforge.event.TickEvent;
+import net.minecraftforge.event.TickEvent.WorldTickEvent;
 import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.fml.RegistryObject;
 import net.minecraftforge.fml.common.Mod;
@@ -49,6 +53,7 @@ public class Hyperbox
 	public static final RegistryKey<DimensionType> DIMENSION_TYPE_KEY = RegistryKey.getOrCreateKey(Registry.DIMENSION_TYPE_KEY, HYPERBOX_ID);
 	
 	public final ServerConfig serverConfig;
+	public final RegistryObject<HyperboxBlock> hyperboxBlock;
 	public final RegistryObject<ApertureBlock> apertureBlock;
 	public final RegistryObject<TileEntityType<HyperboxTileEntity>> hyperboxTileEntityType;
 	public final RegistryObject<TileEntityType<ApertureTileEntity>> apertureTileEntityType;
@@ -67,15 +72,16 @@ public class Hyperbox
 		DeferredRegister<Item> items = makeRegister(modBus, ForgeRegistries.ITEMS);
 		DeferredRegister<TileEntityType<?>> tileEntities = makeRegister(modBus, ForgeRegistries.TILE_ENTITIES);
 		
-		RegistryObject<Block> hyperboxBlock = blocks.register(Names.HYPERBOX, () -> new HyperboxBlock(AbstractBlock.Properties.from(Blocks.PURPUR_BLOCK)));
-		items.register(Names.HYPERBOX, () -> new BlockItem(hyperboxBlock.get(), new Item.Properties().group(ItemGroup.DECORATIONS)));
-		this.hyperboxTileEntityType = tileEntities.register(Names.HYPERBOX, () -> TileEntityType.Builder.create(HyperboxTileEntity::new, hyperboxBlock.get()).build(null));
+		this.hyperboxBlock = blocks.register(Names.HYPERBOX, () -> new HyperboxBlock(AbstractBlock.Properties.from(Blocks.PURPUR_BLOCK).setOpaque(HyperboxBlock::getIsNormalCube)));
+		items.register(Names.HYPERBOX, () -> new BlockItem(this.hyperboxBlock.get(), new Item.Properties().group(ItemGroup.DECORATIONS)));
+		this.hyperboxTileEntityType = tileEntities.register(Names.HYPERBOX, () -> TileEntityType.Builder.create(HyperboxTileEntity::new, this.hyperboxBlock.get()).build(null));
 		
-		this.apertureBlock = blocks.register(Names.APERTURE, () -> new ApertureBlock(AbstractBlock.Properties.from(Blocks.BARRIER).setLightLevel(state -> 6)));
+		this.apertureBlock = blocks.register(Names.APERTURE, () -> new ApertureBlock(AbstractBlock.Properties.from(Blocks.BARRIER).setLightLevel(state -> 6).setOpaque(HyperboxBlock::getIsNormalCube)));
 		this.apertureTileEntityType = tileEntities.register(Names.APERTURE, () -> TileEntityType.Builder.create(ApertureTileEntity::new, this.apertureBlock.get()).build(null));
 		
 		// subscribe event handlers
 		modBus.addListener(this::onCommonSetup);
+		forgeBus.addListener(this::onWorldTick);
 		
 		// subscribe client-build event handlers
 		if (FMLEnvironment.dist == Dist.CLIENT)
@@ -94,6 +100,16 @@ public class Hyperbox
 	{
 		// register things to vanilla Registries for which forge registries don't exist
 		registerVanilla(Registry.CHUNK_GENERATOR_CODEC, Names.HYPERBOX, HyperboxChunkGenerator.CODEC);
+	}
+	
+	void onWorldTick(WorldTickEvent event)
+	{
+		World world = event.world;
+		if (event.phase == TickEvent.Phase.END && world instanceof ServerWorld)
+		{
+			ServerWorld serverWorld = (ServerWorld)world;
+			DelayedTeleportWorldData.tick(serverWorld);
+		}
 	}
 	
 	// helper methods for registering things

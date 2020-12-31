@@ -17,7 +17,8 @@ public class SpawnPointHelper
 		BlockPos clampedTarget = clamp(target, minSpawnCorner, maxSpawnCorner);
 		BlockPos bestPos = clampedTarget;
 		// amount of player space at best pos
-		// empty block with one empty block above -> 2
+		// empty block, one empty block above, one solid block below -> 3
+		// empty block with one empty block above, no empty block below -> 2
 		// non-empty block with one empty block above -> 1
 		// non-empty block above target -> 0
 		int bestPosViability = -1;
@@ -32,8 +33,8 @@ public class SpawnPointHelper
 			BlockPos nextPos = remaining.removeFirst();
 			visited.add(nextPos);
 			int viability = getViability(world, nextPos);
-			// this is the first viability-2 block we've found
-			if (viability == 2)
+			// this is the first viability-3 block we've found
+			if (viability == 3)
 			{
 				return nextPos; // closest viability-2 block to target is the best possible result
 			}
@@ -98,7 +99,9 @@ public class SpawnPointHelper
 				? 0
 				: doesBlockBlockFeet(world, target)
 					? 1
-					: 2;
+					: doesBlockBlockFeet(world,target.down())
+						? 3
+						: 2;
 	}
 
 	// return true if the block has no interaction shape (doesn't block cursor interactions)

@@ -1,0 +1,19 @@
+{
+	"required": true,
+	"package": "commoble.hyperbox.mixins",
+	"compatibilityLevel": "JAVA_8",
+	"refmap": "hyperbox.refmap.json",
+	"mixins": 
+	[
+		"ChunkManagerMixin",
+		"IOWorkerMixin"
+	],
+	"client": 
+	[
+	],
+	"injectors": 
+	{
+		"defaultRequire": 1
+	},
+	"minVersion": "0.8"
+}
