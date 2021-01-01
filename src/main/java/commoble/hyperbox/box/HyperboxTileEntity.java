@@ -75,14 +75,10 @@ public class HyperboxTileEntity extends TileEntity implements INameable
 			ServerWorld thisServerWorld = (ServerWorld)this.world;
 			MinecraftServer server = thisServerWorld.getServer();
 			ServerWorld childWorld = this.getOrCreateWorld(server);
+			BlockState thisState = this.getBlockState();
 			childWorld.forceChunk(HyperboxChunkGenerator.CHUNKPOS.x, HyperboxChunkGenerator.CHUNKPOS.z, true);
-			this.world.updateComparatorOutputLevel(this.pos, this.getBlockState().getBlock());
-			for (Direction dir : Direction.values())
-			{
-//				BlockPos apertureAdjacentPos = this.getChildTargetPos(sideOfChildWorld);
-//				BlockPos aperturePos = this.getAperturePos(sideOfChildWorld);
-				this.getBlockState().onNeighborChange(thisServerWorld, this.pos, this.pos.offset(dir));
-			}
+			this.world.updateComparatorOutputLevel(this.pos, thisState.getBlock());
+			HyperboxBlock.notifyNeighborsOfStrongSignalChange(thisState, childWorld, this.pos);
 			for (Direction sideOfChildWorld : Direction.values())
 			{
 				this.getAperture(server, sideOfChildWorld).ifPresent(aperture ->{
@@ -175,7 +171,7 @@ public class HyperboxTileEntity extends TileEntity implements INameable
 	
 	public int getPower(boolean strong, Direction originalFace)
 	{
-		int output = (strong ? this.strongPowerDUNSWE : this.weakPowerDUNSWE)[originalFace.getIndex()];
+		int output = (strong ? this.strongPowerDUNSWE : this.weakPowerDUNSWE)[originalFace.getIndex()] - 1;
 		return MathHelper.clamp(output,0,15);
 	}
 
@@ -310,12 +306,14 @@ public class HyperboxTileEntity extends TileEntity implements INameable
 
 	/**
 	 * Retrives a hyperbox te from the given world-pos if the te at that position exists and is a hyperbox te
-	 * @param world world
+	 * @param world world, can be null, return value will be empty if this is null
 	 * @param pos pos
 	 * @return Optional containing the te if it exists and is a hyperbox te, empty optional otherwise
 	 */
-	public static Optional<HyperboxTileEntity> get(IBlockReader world, BlockPos pos)
+	public static Optional<HyperboxTileEntity> get(@Nullable IBlockReader world, BlockPos pos)
 	{
+		if (world == null)
+			return Optional.empty();
 		TileEntity te = world.getTileEntity(pos);
 		return te instanceof HyperboxTileEntity
 			? Optional.of((HyperboxTileEntity)te)

@@ -2,7 +2,10 @@ package commoble.hyperbox.aperture;
 
 import java.util.Optional;
 
+import javax.annotation.Nullable;
+
 import commoble.hyperbox.Hyperbox;
+import commoble.hyperbox.box.HyperboxBlock;
 import commoble.hyperbox.dimension.HyperboxWorldData;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
@@ -45,14 +48,24 @@ public class ApertureTileEntity extends TileEntity
 			BlockPos parentPos = data.getParentPos();
 			RegistryKey<World> parentWorldKey = data.getParentWorld();
 			ServerWorld parentWorld = server.getWorld(parentWorldKey);
-			// delegate to the potential TE on the other side of the parent hyperbox
-			// e.g. if this block is being accessed on its west face, we want to check
-			// the tile entity one space to the east of the parent block
-			BlockPos delegatePos = parentPos.offset(side.getOpposite());
-			TileEntity delegateTileEntity = parentWorld.getTileEntity(delegatePos);
-			if (delegateTileEntity != null)
+			if (parentWorld != null)
 			{
-				return delegateTileEntity.getCapability(cap, side);
+				// delegate to the potential TE on the other side of the parent hyperbox
+				// accounting for the rotation of the hyperbox's blockstate
+				// if we can't find a hyperbox block, then don't return a valid capability
+				BlockState parentState = parentWorld.getBlockState(parentPos);
+				Block parentBlock = parentState.getBlock();
+				if (parentBlock instanceof HyperboxBlock)
+				{
+					HyperboxBlock hyperboxBlock = (HyperboxBlock)parentBlock;
+					Direction hyperboxFace = hyperboxBlock.getCurrentFacing(parentState, side.getOpposite());
+					BlockPos delegatePos = parentPos.offset(hyperboxFace);
+					TileEntity delegateTileEntity = parentWorld.getTileEntity(delegatePos);
+					if (delegateTileEntity != null)
+					{
+						return delegateTileEntity.getCapability(cap, hyperboxFace.getOpposite());
+					}
+				}
 			}
 		}
 		return super.getCapability(cap, side);
@@ -157,12 +170,14 @@ public class ApertureTileEntity extends TileEntity
 
 	/**
 	 * Retrives an aperture te from the given world-pos if the te at that position exists and is an aperture te
-	 * @param world world
+	 * @param world The world to check, can be null, an empty optional is returned if world is null
 	 * @param pos pos
 	 * @return Optional containing the te if it exists and is an aperture te, empty optional otherwise
 	 */
-	public static Optional<ApertureTileEntity> get(IBlockReader world, BlockPos pos)
+	public static Optional<ApertureTileEntity> get(@Nullable IBlockReader world, BlockPos pos)
 	{
+		if (world==null)
+			return Optional.empty();
 		TileEntity te = world.getTileEntity(pos);
 		return te instanceof ApertureTileEntity
 			? Optional.of((ApertureTileEntity)te)

@@ -139,16 +139,18 @@ public class HyperboxBlock extends Block
 					}
 					te.afterBlockPlaced();
 				});
-			// simulate some neighbor updates so the inner apertures can update
-//			for (Direction dir : Direction.values())
-//			{
-//	//			BlockPos neighborPos = pos.offset(dir);
-//	//			BlockState neighborState = worldIn.getBlockState(neighborPos);
-//	//			this.onNeighborUpdated(state, worldIn, pos, neighborState, neighborPos);
-//			}
 		}
 	}
-	
+
+	@Override
+	@Deprecated
+	public void onReplaced(BlockState state, World worldIn, BlockPos pos, BlockState newState, boolean isMoving)
+	{
+		// the supercall removes the tile entity
+		super.onReplaced(state, worldIn, pos, newState, isMoving);
+		notifyNeighborsOfStrongSignalChange(state, worldIn, pos);
+	}
+
 	// given the side of a hyperbox in absolute world space,
 	// return the position interior-adjacent to the aperture
 	// on the corresponding side of the inner dimension
@@ -219,6 +221,17 @@ public class HyperboxBlock extends Block
 			}
 		}
 		
+	}
+	
+	public static void notifyNeighborsOfStrongSignalChange(BlockState state, World world, BlockPos pos)
+	{
+		// propagate a neighbor update such that blocks two spaces away from this block get notified of neighbor changes
+		// this ensures that blocks that were receiving a strong signal conducted through a solid block are
+		// correctly updated
+		for (Direction direction : Direction.values())
+		{
+			world.notifyNeighborsOfStateChange(pos.offset(direction), state.getBlock());
+		}
 	}
 	
 	public Optional<ApertureTileEntity> getApertureTileEntityForFace(BlockState thisState, ServerWorld world, BlockPos thisPos, Direction directionToNeighbor)
