@@ -42,7 +42,7 @@ public class HyperboxTileEntity extends TileEntity implements INameable
 	// key to the hyperbox world stored in this te
 	private Optional<RegistryKey<World>> worldKey = Optional.empty();
 	private Optional<ITextComponent> name = Optional.empty();
-	// power output by side index of output side
+	// power output by side index of "original"/unrotated output side (linked to the aperture on the same side of the subdimension)
 	private int[] weakPowerDUNSWE = {0,0,0,0,0,0};
 	private int[] strongPowerDUNSWE = {0,0,0,0,0,0};
 	
@@ -173,69 +173,62 @@ public class HyperboxTileEntity extends TileEntity implements INameable
 		return DimensionHelper.getOrCreateWorld(server, key, HyperboxDimension::createDimension);
 	}
 	
-	public int getPower(boolean strong, Direction sideOfThisBlock)
+	public int getPower(boolean strong, Direction originalFace)
 	{
-		int output = (strong ? this.strongPowerDUNSWE : this.weakPowerDUNSWE)[sideOfThisBlock.getIndex()];
+		int output = (strong ? this.strongPowerDUNSWE : this.weakPowerDUNSWE)[originalFace.getIndex()];
 		return MathHelper.clamp(output,0,15);
 	}
 
 	@Override
-	public <T> LazyOptional<T> getCapability(Capability<T> cap, Direction side)
+	public <T> LazyOptional<T> getCapability(Capability<T> cap, Direction worldSpaceFace)
 	{
+		BlockState thisState = this.getBlockState();
+		Block thisBlock = thisState.getBlock();
 		// delegate to the capability of the block facing the linked aperture in the hyperspace cube
-		if (this.world instanceof ServerWorld)
+		if (thisBlock instanceof HyperboxBlock && this.world instanceof ServerWorld)
 		{
+			HyperboxBlock hyperboxBlock = (HyperboxBlock)thisBlock;
 			ServerWorld targetWorld = this.getOrCreateWorld(((ServerWorld)this.world).getServer());
-			BlockPos targetPos = this.getChildTargetPos(side);
+			BlockPos targetPos = hyperboxBlock.getPosAdjacentToAperture(this.getBlockState(), worldSpaceFace);
 			TileEntity delegateTE = targetWorld.getTileEntity(targetPos);
 			if (delegateTE != null)
 			{
-				return delegateTE.getCapability(cap, side);
+				Direction rotatedDirection = hyperboxBlock.getOriginalFace(thisState, worldSpaceFace);
+				return delegateTE.getCapability(cap, rotatedDirection);
 			}
 		}
-		return super.getCapability(cap, side);
-	}
-	
-	public BlockPos getChildTargetPos(Direction side)
-	{
-		// the hyperbox dimension chunk is a 15x15x15 space, with bedrock walls, a corner at 0,0,0, and the center at 7,7,7
-		// we want to get the position of the block adjacent to the relevant aperture
-		// if side is e.g. west (the west side of the parent block)
-		// then the target position is the block one space to the east of the western aperture
-		// or six spaces to the west of the center
-		return Hyperbox.INSTANCE.hyperboxBlock.get().getChildTargetPos(this.getBlockState(), side);
-	}
-	
-	public BlockPos getAperturePos(Direction sideOfChildWorld)
-	{
-		return HyperboxChunkGenerator.CENTER.offset(sideOfChildWorld, 7);
+		return super.getCapability(cap, worldSpaceFace);
 	}
 	
 	public Optional<ApertureTileEntity> getAperture(MinecraftServer server, Direction sideOfChildWorld)
 	{
-		BlockPos aperturePos = this.getAperturePos(sideOfChildWorld);
+		BlockPos aperturePos = HyperboxChunkGenerator.CENTER.offset(sideOfChildWorld, 7);;
 		return ApertureTileEntity.get(this.getOrCreateWorld(server), aperturePos);
 	}
 	
-	public void updatePower(int weakPower, int strongPower, Direction outputSide)
+	public void updatePower(int weakPower, int strongPower, Direction originalFace)
 	{
-		int directionIndex = outputSide.getIndex();
-		int oldWeakPower = this.weakPowerDUNSWE[directionIndex];
-		int oldStrongPower = this.strongPowerDUNSWE[directionIndex];
-		if (oldWeakPower != weakPower || oldStrongPower != strongPower)
+		BlockState thisState = this.getBlockState();
+		Block thisBlock = thisState.getBlock();
+		if (thisBlock instanceof HyperboxBlock)
 		{
-			this.weakPowerDUNSWE[directionIndex] = weakPower;
-			this.strongPowerDUNSWE[directionIndex] = strongPower;
-			BlockState thisState = this.getBlockState();
-			this.markDirty();	// mark te as needing its data saved
-			this.world.notifyBlockUpdate(this.pos, thisState, thisState, 3); // mark te as needing data synced
-			// notify neighbors so they react to the redstone output change
-			if (net.minecraftforge.event.ForgeEventFactory.onNeighborNotify(this.world, this.pos, thisState, java.util.EnumSet.of(outputSide), true).isCanceled())
-				return;
-			BlockPos adjacentPos = this.pos.offset(outputSide);
-			Block thisBlock = thisState.getBlock();
-			this.world.neighborChanged(adjacentPos, thisBlock, this.pos);
-			this.world.notifyNeighborsOfStateExcept(adjacentPos, thisBlock, outputSide.getOpposite());
+			Direction worldSpaceFace = ((HyperboxBlock)thisBlock).getCurrentFacing(thisState, originalFace);
+			int originalFaceIndex = originalFace.getIndex();
+			int oldWeakPower = this.weakPowerDUNSWE[originalFaceIndex];
+			int oldStrongPower = this.strongPowerDUNSWE[originalFaceIndex];
+			if (oldWeakPower != weakPower || oldStrongPower != strongPower)
+			{
+				this.weakPowerDUNSWE[originalFaceIndex] = weakPower;
+				this.strongPowerDUNSWE[originalFaceIndex] = strongPower;
+				this.markDirty();	// mark te as needing its data saved
+				this.world.notifyBlockUpdate(this.pos, thisState, thisState, 3); // mark te as needing data synced
+				// notify neighbors so they react to the redstone output change
+				if (net.minecraftforge.event.ForgeEventFactory.onNeighborNotify(this.world, this.pos, thisState, java.util.EnumSet.of(originalFace), true).isCanceled())
+					return;
+				BlockPos adjacentPos = this.pos.offset(worldSpaceFace);
+				this.world.neighborChanged(adjacentPos, thisBlock, this.pos);
+				this.world.notifyNeighborsOfStateExcept(adjacentPos, thisBlock, worldSpaceFace.getOpposite());
+			}
 		}
 	}
 

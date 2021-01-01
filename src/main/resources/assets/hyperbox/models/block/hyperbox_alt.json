@@ -1,0 +1,13 @@
+{
+	"parent": "block/cube",
+	"textures": 
+	{
+		"down": "hyperbox:block/hyperbox_west",
+		"up": "hyperbox:block/hyperbox_east",
+		"north": "hyperbox:block/hyperbox_north",
+		"south": "hyperbox:block/hyperbox_south",
+		"west": "hyperbox:block/hyperbox_up",
+		"east": "hyperbox:block/hyperbox_down",
+		"particle": "hyperbox:block/hyperbox"
+	}
+}

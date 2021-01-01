@@ -4,6 +4,7 @@ import java.util.Optional;
 
 import commoble.hyperbox.Hyperbox;
 import commoble.hyperbox.SpawnPointHelper;
+import commoble.hyperbox.box.HyperboxBlock;
 import commoble.hyperbox.box.HyperboxTileEntity;
 import commoble.hyperbox.dimension.DelayedTeleportWorldData;
 import commoble.hyperbox.dimension.HyperboxWorldData;
@@ -68,18 +69,6 @@ public class ApertureBlock extends Block
 		return Hyperbox.INSTANCE.apertureTileEntityType.get().create();
 	}
 
-//	@Override
-//	public VoxelShape getShape(BlockState state, IBlockReader worldIn, BlockPos pos, ISelectionContext context)
-//	{
-//		return VoxelShapes.fullCube();
-//	}
-
-//	@Override
-//	public VoxelShape getCollisionShape(BlockState state, IBlockReader worldIn, BlockPos pos, ISelectionContext context)
-//	{
-//		return VoxelShapes.fullCube();
-//	}
-
 	@Override
 	public ActionResultType onBlockActivated(BlockState state, World worldIn, BlockPos pos, PlayerEntity player, Hand handIn, BlockRayTraceResult hit)
 	{
@@ -92,21 +81,30 @@ public class ApertureBlock extends Block
 			HyperboxWorldData data = HyperboxWorldData.getOrCreate(serverWorld);
 			RegistryKey<World> parentKey = data.getParentWorld();
 			BlockPos parentPos = data.getParentPos();
+			BlockPos targetPos = parentPos;
 			ServerWorld destinationWorld = server.getWorld(parentKey);
 			if (destinationWorld == null)
 			{
 				destinationWorld = server.getWorld(World.OVERWORLD);
 			}
 			Direction apertureFacing = state.get(FACING);
-			// TODO find best free spawn point instead of forcing it
-			BlockPos targetPos = parentPos.offset(apertureFacing.getOpposite());
-			if (destinationWorld.getBlockState(targetPos).getBlockHardness(destinationWorld, targetPos) < 0)
-			{	// if this face of the exit block faces bedrock, make the initial spawn search target be the exit block instead of the adjacent position
-				// (we do this so the spawn finder doesn't skip through the bedrock)
-				targetPos = parentPos;
+			BlockState parentState = destinationWorld.getBlockState(parentPos);
+			Block parentBlock = parentState.getBlock();
+			if (parentBlock instanceof HyperboxBlock)
+			{
+				HyperboxBlock hyperboxBlock = (HyperboxBlock)parentBlock;
+				Direction hyperboxFacing = hyperboxBlock.getCurrentFacing(parentState, apertureFacing.getOpposite()); 
+				targetPos = parentPos.offset(hyperboxFacing);
+				if (destinationWorld.getBlockState(targetPos).getBlockHardness(destinationWorld, targetPos) < 0)
+				{	// if this face of the exit block faces bedrock, make the initial spawn search target be the exit block instead of the adjacent position
+					// (we do this so the spawn finder doesn't skip through the bedrock)
+					targetPos = parentPos;
+				}
+				targetPos = SpawnPointHelper.getBestSpawnPosition(destinationWorld, targetPos, targetPos.add(-3,-3,-3), targetPos.add(3,3,3));
 			}
-			targetPos = SpawnPointHelper.getBestSpawnPosition(destinationWorld, targetPos, targetPos.add(-3,-3,-3), targetPos.add(3,3,3));
-//			DimensionHelper.sendPlayerToDimension(serverPlayer, destinationWorld, Vector3d.copyCentered(targetPos));
+			// else if parent pos is no longer a hyperblock for whatever reason, just teleport them to parentpos
+			
+			
 			DelayedTeleportWorldData.get(serverPlayer.getServerWorld()).addPlayer(serverPlayer, destinationWorld.getDimensionKey(), Vector3d.copyCentered(targetPos));
 		}
 		return ActionResultType.SUCCESS;

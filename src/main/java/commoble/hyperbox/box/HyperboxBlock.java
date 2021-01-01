@@ -6,6 +6,7 @@ import javax.annotation.Nullable;
 
 import commoble.hyperbox.DirectionHelper;
 import commoble.hyperbox.Hyperbox;
+import commoble.hyperbox.RotationHelper;
 import commoble.hyperbox.SpawnPointHelper;
 import commoble.hyperbox.aperture.ApertureTileEntity;
 import commoble.hyperbox.dimension.DelayedTeleportWorldData;
@@ -15,9 +16,11 @@ import net.minecraft.block.BlockState;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.player.ServerPlayerEntity;
+import net.minecraft.item.BlockItemUseContext;
 import net.minecraft.item.ItemStack;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.state.DirectionProperty;
+import net.minecraft.state.IntegerProperty;
 import net.minecraft.state.StateContainer.Builder;
 import net.minecraft.state.properties.BlockStateProperties;
 import net.minecraft.tileentity.TileEntity;
@@ -34,20 +37,23 @@ import net.minecraft.world.server.ServerWorld;
 
 public class HyperboxBlock extends Block
 {	
-	public static final DirectionProperty FACING = BlockStateProperties.HORIZONTAL_FACING;
+	public static final DirectionProperty ATTACHMENT_DIRECTION = BlockStateProperties.FACING;
+	public static final IntegerProperty ROTATION = IntegerProperty.create("rotation", 0,3);
 
 	public HyperboxBlock(Properties properties)
 	{
 		super(properties);
+		// this default state results in the "north" face of the model pointing north
 		this.setDefaultState(this.stateContainer.getBaseState()
-			.with(FACING, Direction.NORTH));
+			.with(ATTACHMENT_DIRECTION, Direction.DOWN)
+			.with(ROTATION, 0));
 	}
 
 	@Override
 	protected void fillStateContainer(Builder<Block, BlockState> builder)
 	{
 		super.fillStateContainer(builder);
-		builder.add(FACING);
+		builder.add(ATTACHMENT_DIRECTION, ROTATION);
 	}
 
 	@Override
@@ -63,6 +69,32 @@ public class HyperboxBlock extends Block
 	}
 
 	@Override
+	public BlockState getStateForPlacement(BlockItemUseContext context)
+	{
+		BlockState defaultState = this.getDefaultState();
+		BlockPos placePos = context.getPos();
+		Direction faceOfAdjacentBlock = context.getFace();
+		Direction directionTowardAdjacentBlock = faceOfAdjacentBlock.getOpposite();
+		Vector3d relativeHitVec = context.getHitVec().subtract(Vector3d.copy(placePos));
+		return getStateForPlacement(defaultState, placePos, directionTowardAdjacentBlock, relativeHitVec);
+	}
+	
+	public static BlockState getStateForPlacement(BlockState defaultState, BlockPos placePos, Direction directionTowardAdjacentBlock, Vector3d relativeHitVec)
+	{
+		Direction outputDirection = RotationHelper.getOutputDirectionFromRelativeHitVec(relativeHitVec, directionTowardAdjacentBlock);
+		int rotationIndex = RotationHelper.getRotationIndexForDirection(directionTowardAdjacentBlock, outputDirection);
+		
+		if (defaultState.hasProperty(ATTACHMENT_DIRECTION) && defaultState.hasProperty(ROTATION))
+		{
+			return defaultState.with(ATTACHMENT_DIRECTION, directionTowardAdjacentBlock).with(ROTATION, rotationIndex);
+		}
+		else
+		{
+			return defaultState;
+		}
+	}
+
+	@Override
 	public ActionResultType onBlockActivated(BlockState state, World worldIn, BlockPos pos, PlayerEntity player, Hand handIn, BlockRayTraceResult hit)
 	{
 		if (player instanceof ServerPlayerEntity)
@@ -74,10 +106,10 @@ public class HyperboxBlock extends Block
 				.ifPresent(te -> 
 				{
 					ServerWorld targetWorld = te.getOrCreateWorld(server);
-					Direction apertureSide = this.getApertureSideForHyperboxSide(state, hit.getFace());
+					BlockPos posAdjacentToAperture = this.getPosAdjacentToAperture(state, hit.getFace());
 					BlockPos spawnPoint = SpawnPointHelper.getBestSpawnPosition(
 						targetWorld,
-						this.getChildTargetPos(state, apertureSide),
+						posAdjacentToAperture,
 						HyperboxChunkGenerator.MIN_SPAWN_CORNER,
 						HyperboxChunkGenerator.MAX_SPAWN_CORNER);
 //					DimensionHelper.sendPlayerToDimension(serverPlayer, targetWorld, Vector3d.copyCentered(spawnPoint));
@@ -108,28 +140,27 @@ public class HyperboxBlock extends Block
 					te.afterBlockPlaced();
 				});
 			// simulate some neighbor updates so the inner apertures can update
-			for (Direction dir : Direction.values())
-			{
-	//			BlockPos neighborPos = pos.offset(dir);
-	//			BlockState neighborState = worldIn.getBlockState(neighborPos);
-	//			this.onNeighborUpdated(state, worldIn, pos, neighborState, neighborPos);
-			}
+//			for (Direction dir : Direction.values())
+//			{
+//	//			BlockPos neighborPos = pos.offset(dir);
+//	//			BlockState neighborState = worldIn.getBlockState(neighborPos);
+//	//			this.onNeighborUpdated(state, worldIn, pos, neighborState, neighborPos);
+//			}
 		}
 	}
 	
-	public Direction getApertureSideForHyperboxSide(BlockState state, Direction side)
+	// given the side of a hyperbox in absolute world space,
+	// return the position interior-adjacent to the aperture
+	// on the corresponding side of the inner dimension
+	public BlockPos getPosAdjacentToAperture(BlockState state, Direction worldSpaceFace)
 	{
-		return side;
-	}
-	
-	public BlockPos getChildTargetPos(BlockState state, Direction side)
-	{
+		Direction originalFace = this.getOriginalFace(state, worldSpaceFace);
 		// the hyperbox dimension chunk is a 15x15x15 space, with bedrock walls, a corner at 0,0,0, and the center at 7,7,7
 		// we want to get the position of the block adjacent to the relevant aperture
 		// if side is e.g. west (the west side of the parent block)
 		// then the target position is the block one space to the east of the western aperture
 		// or six spaces to the west of the center
-		return HyperboxChunkGenerator.CENTER.offset(side, 6);
+		return HyperboxChunkGenerator.CENTER.offset(originalFace, 6);
 	}
 
 	@Override
@@ -138,22 +169,22 @@ public class HyperboxBlock extends Block
 		return true;
 	}
 
-	@SuppressWarnings("deprecation")
 	@Override
 	public int getWeakPower(BlockState blockState, IBlockReader world, BlockPos pos, Direction sideOfAdjacentBlock)
 	{
+		Direction originalFace = this.getOriginalFace(blockState, sideOfAdjacentBlock.getOpposite());
 		return HyperboxTileEntity.get(world, pos)
-			.map(te -> te.getPower(false, sideOfAdjacentBlock.getOpposite()))
-			.orElseGet(() -> super.getWeakPower(blockState, world, pos, sideOfAdjacentBlock));
+			.map(te -> te.getPower(false, originalFace))
+			.orElse(0);
 	}
 
-	@SuppressWarnings("deprecation")
 	@Override
 	public int getStrongPower(BlockState blockState, IBlockReader world, BlockPos pos, Direction sideOfAdjacentBlock)
 	{
+		Direction originalFace = this.getOriginalFace(blockState, sideOfAdjacentBlock.getOpposite());
 		return HyperboxTileEntity.get(world, pos)
-			.map(te -> te.getPower(true, sideOfAdjacentBlock.getOpposite()))
-			.orElseGet(() -> super.getStrongPower(blockState, world, pos, sideOfAdjacentBlock));
+			.map(te -> te.getPower(true, originalFace))
+			.orElse(0);
 	}
 	
 	// called after an adjacent blockstate changes	
@@ -192,8 +223,59 @@ public class HyperboxBlock extends Block
 	
 	public Optional<ApertureTileEntity> getApertureTileEntityForFace(BlockState thisState, ServerWorld world, BlockPos thisPos, Direction directionToNeighbor)
 	{
+		Direction originalFace = this.getOriginalFace(thisState, directionToNeighbor);
 		return HyperboxTileEntity.get(world, thisPos)
-			.flatMap(te -> te.getAperture(world.getServer(), directionToNeighbor));
+			.flatMap(te -> te.getAperture(world.getServer(), originalFace));
+	}
+	
+	public Direction getOriginalFace(BlockState thisState, Direction worldSpaceFace)
+	{
+		// okay, we have these inputs:
+		// -- the side absolute directional side of the hyperbox that was activated
+		// -- a blockstate that represents one of 24 orientations
+		// we need to get which original/unrotated side of the hyperbox was activated
+		// we can use the ATTACHMENT_DIRECTION to determine if we activated the "down" or "up" face
+		// if not, then we need to use ROTATION to determine whether we activated the north/east/south/west face
+		Direction downRotated = thisState.get(ATTACHMENT_DIRECTION);
+		if (downRotated == worldSpaceFace)
+		{
+			return Direction.DOWN;
+		}
+		else if (downRotated.getOpposite() == worldSpaceFace)
+		{
+			return Direction.UP;
+		}
+		else
+		{
+			int rotationIndex = thisState.get(ROTATION);
+			// get the direction that the original "north" face is now pointing
+			Direction newNorth = RotationHelper.getOutputDirection(downRotated, rotationIndex);
+			if (newNorth == worldSpaceFace)
+			{
+				return Direction.NORTH;
+			}
+			else if (newNorth.getOpposite() == worldSpaceFace)
+			{
+				return Direction.SOUTH;
+			}
+			else
+			{
+				Direction newEast = RotationHelper.getInputDirection(downRotated, rotationIndex, 1);
+				return newEast == worldSpaceFace ? Direction.EAST : Direction.WEST;
+			}
+		}
+	}
+	
+	// return the hyperbox's current direction in worldspace of the given unrotated face
+	public Direction getCurrentFacing(BlockState thisState, Direction originalFace)
+	{
+		Direction currentDown = thisState.get(ATTACHMENT_DIRECTION);
+		int rotation = thisState.get(ROTATION);
+		return originalFace == Direction.DOWN
+			? currentDown
+			: originalFace == Direction.UP
+				? currentDown.getOpposite()
+				: RotationHelper.getInputDirection(currentDown, rotation, RotationHelper.getRotationIndexForHorizontal(originalFace));
 	}
 
 	public static boolean getIsNormalCube(BlockState state, IBlockReader world, BlockPos pos)
