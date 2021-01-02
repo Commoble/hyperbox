@@ -1,4 +1,4 @@
-package commoble.hyperbox.box;
+package commoble.hyperbox.blocks;
 
 import java.util.Optional;
 
@@ -8,7 +8,6 @@ import commoble.hyperbox.DirectionHelper;
 import commoble.hyperbox.Hyperbox;
 import commoble.hyperbox.RotationHelper;
 import commoble.hyperbox.SpawnPointHelper;
-import commoble.hyperbox.aperture.ApertureTileEntity;
 import commoble.hyperbox.dimension.DelayedTeleportWorldData;
 import commoble.hyperbox.dimension.HyperboxChunkGenerator;
 import net.minecraft.block.Block;

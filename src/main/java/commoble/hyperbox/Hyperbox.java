@@ -1,9 +1,9 @@
 package commoble.hyperbox;
 
-import commoble.hyperbox.aperture.ApertureBlock;
-import commoble.hyperbox.aperture.ApertureTileEntity;
-import commoble.hyperbox.box.HyperboxBlock;
-import commoble.hyperbox.box.HyperboxTileEntity;
+import commoble.hyperbox.blocks.ApertureBlock;
+import commoble.hyperbox.blocks.ApertureTileEntity;
+import commoble.hyperbox.blocks.HyperboxBlock;
+import commoble.hyperbox.blocks.HyperboxTileEntity;
 import commoble.hyperbox.client.ClientProxy;
 import commoble.hyperbox.dimension.DelayedTeleportWorldData;
 import commoble.hyperbox.dimension.HyperboxChunkGenerator;

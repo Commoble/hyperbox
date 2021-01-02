@@ -1,4 +1,4 @@
-package commoble.hyperbox.box;
+package commoble.hyperbox.blocks;
 
 import java.util.Optional;
 import java.util.UUID;
@@ -6,7 +6,6 @@ import java.util.UUID;
 import javax.annotation.Nullable;
 
 import commoble.hyperbox.Hyperbox;
-import commoble.hyperbox.aperture.ApertureTileEntity;
 import commoble.hyperbox.dimension.DimensionHelper;
 import commoble.hyperbox.dimension.HyperboxChunkGenerator;
 import commoble.hyperbox.dimension.HyperboxDimension;
@@ -101,7 +100,12 @@ public class HyperboxTileEntity extends TileEntity implements INameable
 	{
 		if (this.world instanceof ServerWorld)
 		{
-			this.getOrCreateWorld(((ServerWorld)this.world).getServer()).forceChunk(HyperboxChunkGenerator.CHUNKPOS.x, HyperboxChunkGenerator.CHUNKPOS.z, false);
+			ServerWorld childWorld = this.getOrCreateWorld(((ServerWorld)this.world).getServer());
+			HyperboxWorldData data = HyperboxWorldData.getOrCreate(childWorld);
+			if (data.getParentWorld().equals(this.world.getDimensionKey()) && data.getParentPos().equals(this.pos))
+			{
+				childWorld.forceChunk(HyperboxChunkGenerator.CHUNKPOS.x, HyperboxChunkGenerator.CHUNKPOS.z, false);
+			}
 		}
 		super.remove();
 	}
@@ -165,7 +169,7 @@ public class HyperboxTileEntity extends TileEntity implements INameable
 	public ServerWorld getOrCreateWorld(MinecraftServer server)
 	{
 		ServerWorld targetWorld = this.getChildWorld(server, this.getOrCreateWorldKey());
-		HyperboxWorldData.getOrCreate(targetWorld).setWorldPos(this.world.getDimensionKey(), this.pos);
+		HyperboxWorldData.getOrCreate(targetWorld).setWorldPos(server, targetWorld.getDimensionKey(), this.world.getDimensionKey(), this.pos);
 		return targetWorld;
 	}
 	

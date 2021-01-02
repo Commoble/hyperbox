@@ -4,7 +4,7 @@ import commoble.hyperbox.ConfigHelper;
 import commoble.hyperbox.Hyperbox;
 import commoble.hyperbox.ReflectionHelper;
 import commoble.hyperbox.RotationHelper;
-import commoble.hyperbox.box.HyperboxBlock;
+import commoble.hyperbox.blocks.HyperboxBlock;
 import it.unimi.dsi.fastutil.objects.Object2ObjectMap;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;

@@ -1,8 +1,10 @@
 package commoble.hyperbox.dimension;
 
 import commoble.hyperbox.Hyperbox;
+import commoble.hyperbox.blocks.HyperboxTileEntity;
 import net.minecraft.nbt.CompoundNBT;
 import net.minecraft.nbt.NBTUtil;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.RegistryKey;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.BlockPos;
@@ -38,11 +40,29 @@ public class HyperboxWorldData extends WorldSavedData
 		return world.getSavedData().getOrCreate(HyperboxWorldData::new, DATA_KEY);
 	}
 	
-	public void setWorldPos(RegistryKey<World> parentWorld, BlockPos parentPos)
+	public void setWorldPos(MinecraftServer server, RegistryKey<World> thisWorld, RegistryKey<World> parentWorld, BlockPos parentPos)
 	{
+		RegistryKey<World> oldParentWorld = this.parentWorld;
+		BlockPos oldParentPos = this.parentPos;
+		if (!oldParentWorld.equals(parentWorld) || !(oldParentPos.equals(parentPos)))
+		{
+			this.clearOldParent(server, thisWorld, oldParentWorld, oldParentPos);
+		}
 		this.parentWorld = parentWorld;
 		this.parentPos = parentPos;
 		this.markDirty();
+	}
+	
+	protected void clearOldParent(MinecraftServer server, RegistryKey<World> thisWorldKey, RegistryKey<World> oldParentKey, BlockPos oldParentPos)
+	{
+		ServerWorld oldParentWorld = server.getWorld(oldParentKey);
+		if (oldParentWorld != null)
+		{
+			HyperboxTileEntity.get(oldParentWorld, oldParentPos)
+				.flatMap(HyperboxTileEntity::getWorldKey)
+				.filter(thisWorldKey::equals)
+				.ifPresent($ -> oldParentWorld.removeBlock(oldParentPos, true));
+		}
 	}
 
 	@Override

@@ -1,11 +1,10 @@
-package commoble.hyperbox.aperture;
+package commoble.hyperbox.blocks;
 
 import java.util.Optional;
 
 import javax.annotation.Nullable;
 
 import commoble.hyperbox.Hyperbox;
-import commoble.hyperbox.box.HyperboxBlock;
 import commoble.hyperbox.dimension.HyperboxWorldData;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;

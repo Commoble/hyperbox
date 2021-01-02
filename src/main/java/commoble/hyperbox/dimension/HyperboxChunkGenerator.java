@@ -7,7 +7,7 @@ import javax.annotation.Nullable;
 import com.mojang.serialization.Codec;
 
 import commoble.hyperbox.Hyperbox;
-import commoble.hyperbox.aperture.ApertureBlock;
+import commoble.hyperbox.blocks.ApertureBlock;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
 import net.minecraft.server.MinecraftServer;
