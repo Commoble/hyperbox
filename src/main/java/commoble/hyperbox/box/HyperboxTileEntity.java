@@ -77,9 +77,14 @@ public class HyperboxTileEntity extends TileEntity implements INameable
 			ServerWorld childWorld = this.getOrCreateWorld(server);
 			BlockState thisState = this.getBlockState();
 			childWorld.forceChunk(HyperboxChunkGenerator.CHUNKPOS.x, HyperboxChunkGenerator.CHUNKPOS.z, true);
+			Direction[] dirs = Direction.values();
+			for (Direction dir : dirs)
+			{
+				thisState.onNeighborChange(this.world, this.pos, this.pos.offset(dir));
+			}
 			this.world.updateComparatorOutputLevel(this.pos, thisState.getBlock());
 			HyperboxBlock.notifyNeighborsOfStrongSignalChange(thisState, childWorld, this.pos);
-			for (Direction sideOfChildWorld : Direction.values())
+			for (Direction sideOfChildWorld : dirs)
 			{
 				this.getAperture(server, sideOfChildWorld).ifPresent(aperture ->{
 					BlockPos aperturePos = aperture.getPos();
