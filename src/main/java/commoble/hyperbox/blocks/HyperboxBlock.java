@@ -8,7 +8,7 @@ import commoble.hyperbox.DirectionHelper;
 import commoble.hyperbox.Hyperbox;
 import commoble.hyperbox.RotationHelper;
 import commoble.hyperbox.SpawnPointHelper;
-import commoble.hyperbox.dimension.DelayedTeleportWorldData;
+import commoble.hyperbox.dimension.DelayedTeleportData;
 import commoble.hyperbox.dimension.HyperboxChunkGenerator;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
@@ -112,7 +112,7 @@ public class HyperboxBlock extends Block
 						HyperboxChunkGenerator.MIN_SPAWN_CORNER,
 						HyperboxChunkGenerator.MAX_SPAWN_CORNER);
 //					DimensionHelper.sendPlayerToDimension(serverPlayer, targetWorld, Vector3d.copyCentered(spawnPoint));
-					DelayedTeleportWorldData.get(serverPlayer.getServerWorld()).addPlayer(serverPlayer, targetWorld.getDimensionKey(), Vector3d.copyCentered(spawnPoint));
+					DelayedTeleportData.getOrCreate(serverPlayer.getServerWorld()).schedulePlayerTeleport(serverPlayer, targetWorld.getDimensionKey(), Vector3d.copyCentered(spawnPoint));
 				});
 		}
 		

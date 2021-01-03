@@ -4,7 +4,7 @@ import java.util.Optional;
 
 import commoble.hyperbox.Hyperbox;
 import commoble.hyperbox.SpawnPointHelper;
-import commoble.hyperbox.dimension.DelayedTeleportWorldData;
+import commoble.hyperbox.dimension.DelayedTeleportData;
 import commoble.hyperbox.dimension.HyperboxWorldData;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
@@ -103,7 +103,7 @@ public class ApertureBlock extends Block
 			// else if parent pos is no longer a hyperblock for whatever reason, just teleport them to parentpos
 			
 			
-			DelayedTeleportWorldData.get(serverPlayer.getServerWorld()).addPlayer(serverPlayer, destinationWorld.getDimensionKey(), Vector3d.copyCentered(targetPos));
+			DelayedTeleportData.getOrCreate(serverPlayer.getServerWorld()).schedulePlayerTeleport(serverPlayer, destinationWorld.getDimensionKey(), Vector3d.copyCentered(targetPos));
 		}
 		return ActionResultType.SUCCESS;
 	}

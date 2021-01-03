@@ -5,12 +5,9 @@ import java.util.function.Supplier;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.gen.Accessor;
 import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.ModifyVariable;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import commoble.hyperbox.MixinCallbacks;
-import net.minecraft.entity.player.ServerPlayerEntity;
 import net.minecraft.world.server.ChunkManager;
 import net.minecraft.world.server.ServerWorld;
 
@@ -36,9 +33,9 @@ public abstract class ChunkManagerMixin implements Supplier<ServerWorld>
 		return MixinCallbacks.modifyChunkManagerViewDistance(this, clampedViewDistance);
 	}
 	
-	@Inject(method ="cannotGenerateChunks", at = @At("HEAD"), cancellable=true)
-	public void onCannotGenerateChunks(ServerPlayerEntity player, CallbackInfoReturnable<Boolean> info)
-	{
-		MixinCallbacks.onChunkHolderCannotGenerateChunks(this, info);
-	}
+//	@Inject(method ="cannotGenerateChunks", at = @At("HEAD"), cancellable=true)
+//	public void onCannotGenerateChunks(ServerPlayerEntity player, CallbackInfoReturnable<Boolean> info)
+//	{
+//		MixinCallbacks.onChunkHolderCannotGenerateChunks(this, info);
+//	}
 }

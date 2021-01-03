@@ -35,13 +35,13 @@ public class DimensionHelper
 	// we can use Access Transformers, Accessor Mixins, or ObfuscationReflectionHelper to get at these
 	// we'll use ORH here as ATs and Mixins seem to be causing headaches for dependant mods lately
 		// it also lets us define the private-field-getting-shenanigans in the same class we're using them
-		// it also doesn't need any extra resources or buildscript stuff, which makes this example simpler to describe
+		// it also doesn't need any extra resources or buildscript stuff, which makes testing faster
 	public static final Function<MinecraftServer, IChunkStatusListenerFactory> CHUNK_STATUS_LISTENER_FACTORY_FIELD =
-		ReflectionHelper.getInstanceField(MinecraftServer.class, "field_213220_d");
+		ReflectionHelper.getInstanceFieldGetter(MinecraftServer.class, "field_213220_d");
 	public static final Function<MinecraftServer, Executor> BACKGROUND_EXECUTOR_FIELD =
-		ReflectionHelper.getInstanceField(MinecraftServer.class, "field_213217_au");
+		ReflectionHelper.getInstanceFieldGetter(MinecraftServer.class, "field_213217_au");
 	public static final Function<MinecraftServer, LevelSave> ANVIL_CONVERTER_FOR_ANVIL_FILE_FIELD =
-		ReflectionHelper.getInstanceField(MinecraftServer.class, "field_71310_m");
+		ReflectionHelper.getInstanceFieldGetter(MinecraftServer.class, "field_71310_m");
 	
 	// helper for sending a given player to another dimension
 	// for static dimensions (from datapacks, etc) use MinecraftServer::getWorld to get the world object

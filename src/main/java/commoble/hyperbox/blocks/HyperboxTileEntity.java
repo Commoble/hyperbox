@@ -100,12 +100,22 @@ public class HyperboxTileEntity extends TileEntity implements INameable
 	{
 		if (this.world instanceof ServerWorld)
 		{
-			ServerWorld childWorld = this.getOrCreateWorld(((ServerWorld)this.world).getServer());
-			HyperboxWorldData data = HyperboxWorldData.getOrCreate(childWorld);
-			if (data.getParentWorld().equals(this.world.getDimensionKey()) && data.getParentPos().equals(this.pos))
+			ServerWorld thisWorld = (ServerWorld)this.world;
+			MinecraftServer server = thisWorld.getServer();
+			this.getWorldKey().ifPresent(childKey ->
 			{
-				childWorld.forceChunk(HyperboxChunkGenerator.CHUNKPOS.x, HyperboxChunkGenerator.CHUNKPOS.z, false);
-			}
+				ServerWorld childWorld = server.getWorld(childKey);
+				if (childWorld != null)
+				{
+					
+					HyperboxWorldData data = HyperboxWorldData.getOrCreate(childWorld);
+					if (data.getParentWorld().equals(this.world.getDimensionKey()) && data.getParentPos().equals(this.pos))
+					{
+						childWorld.forceChunk(HyperboxChunkGenerator.CHUNKPOS.x, HyperboxChunkGenerator.CHUNKPOS.z, false);
+//						DelayedTeleportData.getOrCreate(childWorld).scheduleDimensionUnload(childKey);
+					}
+				}
+			});
 		}
 		super.remove();
 	}

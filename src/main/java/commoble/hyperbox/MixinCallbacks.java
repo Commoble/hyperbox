@@ -4,8 +4,6 @@ import java.io.File;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
-
 import commoble.hyperbox.dimension.HyperboxDimension;
 import commoble.hyperbox.dimension.HyperboxRegionFileCache;
 import net.minecraft.world.chunk.storage.RegionFileCache;
@@ -20,13 +18,13 @@ public class MixinCallbacks
 			: viewDistanceIn;
 	}
 	
-	public static void onChunkHolderCannotGenerateChunks(Supplier<ServerWorld> worldSupplier, CallbackInfoReturnable<Boolean> info)
-	{
-		if (HyperboxDimension.isHyperboxDimension(worldSupplier.get().getDimensionKey()))
-		{
-			info.setReturnValue(true);
-		}
-	}
+//	public static void onChunkHolderCannotGenerateChunks(Supplier<ServerWorld> worldSupplier, CallbackInfoReturnable<Boolean> info)
+//	{
+////		if (HyperboxDimension.isHyperboxDimension(worldSupplier.get().getDimensionKey()))
+////		{
+////			info.setReturnValue(true);
+////		}
+//	}
 	
 	public static void onIOWorkerConstruction(File file, boolean sync, Consumer<RegionFileCache> cacheConsumer)
 	{

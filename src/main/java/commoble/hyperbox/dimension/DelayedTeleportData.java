@@ -20,20 +20,21 @@ import net.minecraft.world.storage.WorldSavedData;
 // we can't teleport players from onBlockActivated as there are assumptions
 // in the right click processing that assume a player's world does not change
 // so what we'll do is schedule a teleport to occur one tick later
-public class DelayedTeleportWorldData extends WorldSavedData
+public class DelayedTeleportData extends WorldSavedData
 {
-	public static final String DATA_KEY = Hyperbox.MODID + ":delayed_teleports";
+	public static final String DATA_KEY = Hyperbox.MODID + ":delayed_events";
 	
-	private List<TeleportEntry> entries = new ArrayList<>();
+	private List<TeleportEntry> delayedTeleports = new ArrayList<>();
+//	private List<RegistryKey<World>> dimensionUnloads = new ArrayList<>();
 
-	public DelayedTeleportWorldData()
+	public DelayedTeleportData()
 	{
 		super(DATA_KEY);
 	}
 	
-	public static DelayedTeleportWorldData get(ServerWorld world)
+	public static DelayedTeleportData getOrCreate(ServerWorld world)
 	{
-		return world.getSavedData().getOrCreate(DelayedTeleportWorldData::new, DATA_KEY);
+		return world.getSavedData().getOrCreate(DelayedTeleportData::new, DATA_KEY);
 	}
 	
 	/**
@@ -44,10 +45,12 @@ public class DelayedTeleportWorldData extends WorldSavedData
 	public static void tick(ServerWorld world)
 	{
 		MinecraftServer server = world.getServer();
-		DelayedTeleportWorldData data = get(world);
-		List<TeleportEntry> list = data.entries;
-		data.entries = new ArrayList<>();
-		for (TeleportEntry entry : list)
+		DelayedTeleportData eventData = getOrCreate(world);
+		
+		// handle teleports
+		List<TeleportEntry> teleports = eventData.delayedTeleports;
+		eventData.delayedTeleports = new ArrayList<>();
+		for (TeleportEntry entry : teleports)
 		{
 			@Nullable ServerPlayerEntity player = server.getPlayerList().getPlayerByUUID(entry.playerUUID);
 			@Nullable ServerWorld targetWorld = server.getWorld(entry.targetWorld);
@@ -58,10 +61,15 @@ public class DelayedTeleportWorldData extends WorldSavedData
 		}
 	}
 	
-	public void addPlayer(PlayerEntity player, RegistryKey<World> destination, Vector3d targetVec)
+	public void schedulePlayerTeleport(PlayerEntity player, RegistryKey<World> destination, Vector3d targetVec)
 	{
-		this.entries.add(new TeleportEntry(PlayerEntity.getUUID(player.getGameProfile()), destination, targetVec));
+		this.delayedTeleports.add(new TeleportEntry(PlayerEntity.getUUID(player.getGameProfile()), destination, targetVec));
 	}
+	
+//	public void scheduleDimensionUnload(RegistryKey<World> world)
+//	{
+//		this.dimensionUnloads.add(world);
+//	}
 
 	@Override
 	public void read(CompoundNBT nbt)

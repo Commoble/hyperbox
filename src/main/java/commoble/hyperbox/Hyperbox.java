@@ -1,21 +1,31 @@
 package commoble.hyperbox;
 
+import javax.annotation.Nullable;
+
+import com.google.common.collect.ImmutableSet;
+
 import commoble.hyperbox.blocks.ApertureBlock;
 import commoble.hyperbox.blocks.ApertureTileEntity;
 import commoble.hyperbox.blocks.HyperboxBlock;
 import commoble.hyperbox.blocks.HyperboxTileEntity;
 import commoble.hyperbox.client.ClientProxy;
-import commoble.hyperbox.dimension.DelayedTeleportWorldData;
+import commoble.hyperbox.dimension.DelayedTeleportData;
+import commoble.hyperbox.dimension.DimensionRemover;
 import commoble.hyperbox.dimension.HyperboxChunkGenerator;
+import commoble.hyperbox.dimension.HyperboxDimension;
+import commoble.hyperbox.dimension.HyperboxWorldData;
 import net.minecraft.block.AbstractBlock;
 import net.minecraft.block.Block;
 import net.minecraft.block.Blocks;
 import net.minecraft.item.BlockItem;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemGroup;
+import net.minecraft.server.MinecraftServer;
+import net.minecraft.tileentity.TileEntity;
 import net.minecraft.tileentity.TileEntityType;
 import net.minecraft.util.RegistryKey;
 import net.minecraft.util.ResourceLocation;
+import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.registry.Registry;
 import net.minecraft.world.Dimension;
 import net.minecraft.world.DimensionType;
@@ -108,8 +118,58 @@ public class Hyperbox
 		if (event.phase == TickEvent.Phase.END && world instanceof ServerWorld)
 		{
 			ServerWorld serverWorld = (ServerWorld)world;
-			DelayedTeleportWorldData.tick(serverWorld);
+			MinecraftServer server = serverWorld.getServer();
+			// cleanup unused hyperboxes
+			
+			// unload dimensions first so we don't teleport players to worlds we're about to unload
+			RegistryKey<World> key = serverWorld.getDimensionKey();
+			if (shouldUnloadDimension(server, key))
+			{
+				DimensionRemover.unregisterDimensions(server, ImmutableSet.of(key));
+			}
+			
+			// handle scheduled teleports
+			DelayedTeleportData.tick(serverWorld);
 		}
+	}
+	
+	public static boolean shouldUnloadDimension(MinecraftServer server, RegistryKey<World> key)
+	{
+		// only unload hyperbox dimensions
+		if (!HyperboxDimension.isHyperboxDimension(key))
+			return false;
+		
+		// if the dimension doesn't exist, don't unload it
+		@Nullable ServerWorld targetWorld = server.getWorld(key);
+		if (targetWorld == null)
+			return false;
+		
+		HyperboxWorldData hyperboxData = HyperboxWorldData.getOrCreate(targetWorld);
+		RegistryKey<World> parentKey = hyperboxData.getParentWorld();
+		BlockPos parentPos = hyperboxData.getParentPos();
+		
+		// if we can't find the parent world, unload the hyperbox dimension
+		@Nullable ServerWorld parentWorld = server.getWorld(parentKey);
+		if (parentWorld == null)
+			return true;
+		
+		// don't load chunks in the tick event
+		// if we can't check the chunk, we can't verify that the dimension should be unloaded
+		if (!parentWorld.chunkExists(parentPos.getX()>>4, parentPos.getZ()>>4))
+			return false;
+		
+		// if the te doesn't exist or isn't a hyperbox, return true and unload
+		TileEntity te = parentWorld.getTileEntity(parentPos);
+		if (!(te instanceof HyperboxTileEntity))
+			return true;
+		
+		HyperboxTileEntity hyperbox = (HyperboxTileEntity) te;
+		
+		return hyperbox.getWorldKey()
+			// if the te points to our dimension, return false and don't unload
+			.map(childKey -> !childKey.equals(key))
+			// if the te doesn't point anywhere, return true and unload
+			.orElse(true);
 	}
 	
 	// helper methods for registering things
