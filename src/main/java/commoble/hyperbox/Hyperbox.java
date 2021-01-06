@@ -8,6 +8,7 @@ import commoble.hyperbox.blocks.ApertureBlock;
 import commoble.hyperbox.blocks.ApertureTileEntity;
 import commoble.hyperbox.blocks.HyperboxBlock;
 import commoble.hyperbox.blocks.HyperboxTileEntity;
+import commoble.hyperbox.capability.ReturnPointCapability;
 import commoble.hyperbox.client.ClientProxy;
 import commoble.hyperbox.dimension.DelayedTeleportData;
 import commoble.hyperbox.dimension.DimensionRemover;
@@ -17,6 +18,8 @@ import commoble.hyperbox.dimension.HyperboxWorldData;
 import net.minecraft.block.AbstractBlock;
 import net.minecraft.block.Block;
 import net.minecraft.block.Blocks;
+import net.minecraft.entity.Entity;
+import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.BlockItem;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemGroup;
@@ -34,6 +37,8 @@ import net.minecraft.world.biome.Biome;
 import net.minecraft.world.server.ServerWorld;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.common.MinecraftForge;
+import net.minecraftforge.common.capabilities.CapabilityManager;
+import net.minecraftforge.event.AttachCapabilitiesEvent;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.event.TickEvent.WorldTickEvent;
 import net.minecraftforge.eventbus.api.IEventBus;
@@ -92,6 +97,7 @@ public class Hyperbox
 		// subscribe event handlers
 		modBus.addListener(this::onCommonSetup);
 		forgeBus.addListener(this::onWorldTick);
+		forgeBus.addGenericListener(Entity.class, this::onAttachEntityCapabilities);
 		
 		// subscribe client-build event handlers
 		if (FMLEnvironment.dist == Dist.CLIENT)
@@ -102,6 +108,7 @@ public class Hyperbox
 	
 	void onCommonSetup(FMLCommonSetupEvent event)
 	{
+		CapabilityManager.INSTANCE.register(ReturnPointCapability.class, new ReturnPointCapability(), ReturnPointCapability::new);
 		event.enqueueWork(this::afterCommonSetup);
 	}
 	
@@ -110,6 +117,15 @@ public class Hyperbox
 	{
 		// register things to vanilla Registries for which forge registries don't exist
 		registerVanilla(Registry.CHUNK_GENERATOR_CODEC, Names.HYPERBOX, HyperboxChunkGenerator.CODEC);
+	}
+	
+	void onAttachEntityCapabilities(AttachCapabilitiesEvent<Entity> event)
+	{
+		Entity entity = event.getObject();
+		if (entity instanceof PlayerEntity)
+		{
+			event.addCapability(ReturnPointCapability.ID, ReturnPointCapability.INSTANCE.getDefaultInstance());
+		}
 	}
 	
 	void onWorldTick(WorldTickEvent event)

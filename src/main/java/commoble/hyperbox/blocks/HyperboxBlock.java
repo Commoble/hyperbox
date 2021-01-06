@@ -8,8 +8,10 @@ import commoble.hyperbox.DirectionHelper;
 import commoble.hyperbox.Hyperbox;
 import commoble.hyperbox.RotationHelper;
 import commoble.hyperbox.SpawnPointHelper;
+import commoble.hyperbox.capability.ReturnPointCapability;
 import commoble.hyperbox.dimension.DelayedTeleportData;
 import commoble.hyperbox.dimension.HyperboxChunkGenerator;
+import commoble.hyperbox.dimension.HyperboxDimension;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.entity.LivingEntity;
@@ -100,12 +102,20 @@ public class HyperboxBlock extends Block
 		{
 			ServerPlayerEntity serverPlayer = (ServerPlayerEntity)player;
 			MinecraftServer server = serverPlayer.server;
+			Direction faceActivated = hit.getFace();
+			
+			if (!HyperboxDimension.isHyperboxDimension(worldIn.getDimensionKey()))
+			{
+				serverPlayer.getCapability(ReturnPointCapability.INSTANCE).ifPresent(cap ->{
+					cap.setReturnPoint(worldIn.getDimensionKey(), pos);
+				});
+			}
 			
 			HyperboxTileEntity.get(worldIn, pos)
 				.ifPresent(te -> 
 				{
 					ServerWorld targetWorld = te.getOrCreateWorld(server);
-					BlockPos posAdjacentToAperture = this.getPosAdjacentToAperture(state, hit.getFace());
+					BlockPos posAdjacentToAperture = this.getPosAdjacentToAperture(state, faceActivated);
 					BlockPos spawnPoint = SpawnPointHelper.getBestSpawnPosition(
 						targetWorld,
 						posAdjacentToAperture,

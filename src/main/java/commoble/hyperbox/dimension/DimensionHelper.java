@@ -1,6 +1,7 @@
 package commoble.hyperbox.dimension;
 
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.Executor;
 import java.util.function.BiFunction;
 import java.util.function.Function;
@@ -9,6 +10,7 @@ import com.google.common.collect.ImmutableList;
 import com.mojang.serialization.Lifecycle;
 
 import commoble.hyperbox.ReflectionHelper;
+import commoble.hyperbox.capability.ReturnPointCapability;
 import net.minecraft.entity.player.ServerPlayerEntity;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.RegistryKey;
@@ -51,6 +53,29 @@ public class DimensionHelper
 		// ensure destination chunk is loaded before we put the player in it
 		targetWorld.getChunk(new BlockPos(targetVec));
 		serverPlayer.teleport(targetWorld, targetVec.getX(), targetVec.getY(), targetVec.getZ(), serverPlayer.rotationYaw, serverPlayer.rotationPitch);
+	}
+	
+	public static void ejectPlayerFromDeadWorld(ServerPlayerEntity serverPlayer)
+	{
+//		MinecraftServer server = deadWorld.getServer();
+		
+		// get best world to send the player to
+		ReturnPointCapability.getReturnPoint(serverPlayer)
+			.apply((targetWorld,pos) ->
+			{
+				if (targetWorld instanceof ServerWorld)
+				{
+					sendPlayerToDimension(serverPlayer, (ServerWorld)targetWorld, Vector3d.copyCentered(pos));
+				}
+				return Optional.empty();	// make the worldposcallable happy
+			});
+//		ServerWorld targetWorld = server.getWorld(serverPlayer.func_241141_L_()); // get respawn world
+//		if (targetWorld == null)
+//			targetWorld = server.getWorld(World.OVERWORLD);
+//		
+//		Vector3d targetVec = Vector3d.copyCentered(targetWorld.getSpawnPoint());
+//		
+//		sendPlayerToDimension(serverPlayer, targetWorld, targetVec);
 	}
 	
 	/**

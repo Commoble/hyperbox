@@ -11,12 +11,14 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import com.google.common.collect.BiMap;
+import com.google.common.collect.Lists;
 import com.mojang.datafixers.util.Pair;
 import com.mojang.serialization.Lifecycle;
 
 import commoble.hyperbox.ReflectionHelper;
 import commoble.hyperbox.ReflectionHelper.MutableInstanceField;
 import it.unimi.dsi.fastutil.objects.ObjectList;
+import net.minecraft.entity.player.ServerPlayerEntity;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.RegistryKey;
 import net.minecraft.util.registry.Registry;
@@ -92,6 +94,15 @@ public class DimensionRemover
 			ServerWorld removedWorld = server.forgeGetWorldMap().remove(key);
 			if (removedWorld != null)
 			{
+				// iterate over a copy as the world will remove players from the original list
+				for (ServerPlayerEntity player : Lists.newArrayList((removedWorld.getPlayers())))
+				{
+					DimensionHelper.ejectPlayerFromDeadWorld(player);
+//					server.getPlayerList().func_232644_a_(player, true); // respawn player
+//					player.connection.disconnect(new StringTextComponent("Localized existence failure"));
+//					Vector3d targetVec = 
+//					DimensionHelper.sendPlayerToDimension(player, overworld, targetVec);
+				}
 				removedWorld.save(null, false, removedWorld.disableLevelSaving);
 				removeWorldBorderListener(server, removedWorld);
 				removedKeys.add(dimensionKey);
