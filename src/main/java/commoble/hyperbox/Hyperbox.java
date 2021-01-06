@@ -1,5 +1,7 @@
 package commoble.hyperbox;
 
+import java.util.function.Consumer;
+
 import javax.annotation.Nullable;
 
 import com.google.common.collect.ImmutableSet;
@@ -41,6 +43,7 @@ import net.minecraftforge.common.capabilities.CapabilityManager;
 import net.minecraftforge.event.AttachCapabilitiesEvent;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.event.TickEvent.WorldTickEvent;
+import net.minecraftforge.event.entity.PlaySoundAtEntityEvent;
 import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.fml.RegistryObject;
 import net.minecraftforge.fml.common.Mod;
@@ -98,6 +101,9 @@ public class Hyperbox
 		modBus.addListener(this::onCommonSetup);
 		forgeBus.addListener(this::onWorldTick);
 		forgeBus.addGenericListener(Entity.class, this::onAttachEntityCapabilities);
+		
+		Consumer<PlaySoundAtEntityEvent> soundEvent = event -> event.setVolume(event.getVolume() / 2);
+		forgeBus.addListener(soundEvent);
 		
 		// subscribe client-build event handlers
 		if (FMLEnvironment.dist == Dist.CLIENT)
