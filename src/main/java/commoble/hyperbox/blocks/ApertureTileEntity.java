@@ -21,15 +21,19 @@ import net.minecraft.world.IBlockReader;
 import net.minecraft.world.World;
 import net.minecraft.world.server.ServerWorld;
 import net.minecraftforge.common.capabilities.Capability;
+import net.minecraftforge.common.util.Constants;
 import net.minecraftforge.common.util.LazyOptional;
 
 public class ApertureTileEntity extends TileEntity
 {
 	public static final String WEAK_POWER = "weak_power";
 	public static final String STRONG_POWER = "strong_power";
+	public static final String COLOR = "color";
 	
 	private int weakPower = 0;
 	private int strongPower = 0;
+	
+	private int color = HyperboxBlockItem.DEFAULT_COLOR;
 
 	public ApertureTileEntity()
 	{
@@ -68,6 +72,22 @@ public class ApertureTileEntity extends TileEntity
 			}
 		}
 		return super.getCapability(cap, side);
+	}
+	
+	public int getColor()
+	{
+		return this.color;
+	}
+	
+	public void setColor(int color)
+	{
+		if (this.color != color)
+		{
+			this.color = color;
+			this.markDirty();
+			BlockState state = this.getBlockState();
+			this.world.notifyBlockUpdate(this.pos, state, state, Constants.BlockFlags.DEFAULT);
+		}
 	}
 	
 	public int getPower(boolean strong)
@@ -134,6 +154,10 @@ public class ApertureTileEntity extends TileEntity
 	{
 		nbt.putInt(WEAK_POWER, this.weakPower);
 		nbt.putInt(STRONG_POWER, this.strongPower);
+		if (this.color != HyperboxBlockItem.DEFAULT_COLOR)
+		{
+			nbt.putInt(COLOR, this.color);
+		}
 		return nbt;
 	}
 	
@@ -141,6 +165,10 @@ public class ApertureTileEntity extends TileEntity
 	{
 		this.weakPower = nbt.getInt(WEAK_POWER);
 		this.strongPower = nbt.getInt(STRONG_POWER);
+		if (nbt.contains(COLOR))
+		{
+			this.color = nbt.getInt(COLOR);
+		}
 	}
 
 	// called on server when the TE is initially loaded on client (e.g. when client loads chunk)

@@ -24,6 +24,11 @@
 									"source": "world_key",
 									"target": "BlockEntityTag.world_key",
 									"op": "replace"
+								},
+								{
+									"source": "color",
+									"target": "display.color",
+									"op": "replace"
 								}
 							]
 						}

@@ -8,16 +8,17 @@ import commoble.hyperbox.DirectionHelper;
 import commoble.hyperbox.Hyperbox;
 import commoble.hyperbox.RotationHelper;
 import commoble.hyperbox.SpawnPointHelper;
-import commoble.hyperbox.capability.ReturnPointCapability;
 import commoble.hyperbox.dimension.DelayedTeleportData;
 import commoble.hyperbox.dimension.HyperboxChunkGenerator;
 import commoble.hyperbox.dimension.HyperboxDimension;
+import commoble.hyperbox.dimension.ReturnPointCapability;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.player.ServerPlayerEntity;
 import net.minecraft.item.BlockItemUseContext;
+import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.state.DirectionProperty;
@@ -134,10 +135,20 @@ public class HyperboxBlock extends Block
 	public void onBlockPlacedBy(World worldIn, BlockPos pos, BlockState state, @Nullable LivingEntity placer, ItemStack stack)
 	{
 		// if item was named via anvil+nametag, convert that to a TE name
-		if (!worldIn.isRemote)
-		{
-			HyperboxTileEntity.get(worldIn, pos)
-				.ifPresent(te -> {
+		HyperboxTileEntity.get(worldIn, pos)
+			.ifPresent(te ->
+			{
+				Item item = stack.getItem();
+				// setting the color on the client world ensures that the te
+				// gets its color set properly after we place it on the client
+				// so that it renders correctly
+				if (item instanceof HyperboxBlockItem)
+				{
+					HyperboxBlockItem hyperboxItem = (HyperboxBlockItem)item;
+					te.setColor(hyperboxItem.getColorIfPresent(stack));
+				}
+				if (!worldIn.isRemote)
+				{
 					if (stack.hasDisplayName())
 					{
 						te.setName(stack.getDisplayName());
@@ -147,8 +158,8 @@ public class HyperboxBlock extends Block
 						te.setNewWorldKey();
 					}
 					te.afterBlockPlaced();
-				});
-		}
+					}
+			});
 	}
 
 	@Override

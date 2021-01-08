@@ -12,6 +12,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.player.ClientPlayerEntity;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.RenderTypeLookup;
+import net.minecraft.client.renderer.color.BlockColors;
 import net.minecraft.client.world.DimensionRenderInfo;
 import net.minecraft.item.BlockItem;
 import net.minecraft.item.Item;
@@ -54,12 +55,18 @@ public class ClientProxy
 		renderInfoMap.put(Hyperbox.HYPERBOX_ID, new HyperboxRenderInfo());
 		
 		RenderTypeLookup.setRenderLayer(Hyperbox.INSTANCE.hyperboxBlock.get(), RenderType.getCutout());
+		RenderTypeLookup.setRenderLayer(Hyperbox.INSTANCE.hyperboxPreviewBlock.get(), RenderType.getCutout());
 		RenderTypeLookup.setRenderLayer(Hyperbox.INSTANCE.apertureBlock.get(), RenderType.getCutout());
 	}
 	
 	static void onRegisterBlockColors(ColorHandlerEvent.Block event)
 	{
-		event.getBlockColors().register(ColorHandlers::getHyperboxBlockColor, Hyperbox.INSTANCE.hyperboxBlock.get());
+		BlockColors colors = event.getBlockColors();
+		colors.register(ColorHandlers::getHyperboxBlockColor, Hyperbox.INSTANCE.hyperboxBlock.get());
+		colors.register(ColorHandlers::getHyperboxPreviewBlockColor, Hyperbox.INSTANCE.hyperboxPreviewBlock.get());
+		colors.register(ColorHandlers::getApertureBlockColor, Hyperbox.INSTANCE.apertureBlock.get());
+		
+	
 	}
 	
 	static void onRegisterItemColors(ColorHandlerEvent.Item event)
@@ -99,7 +106,7 @@ public class ClientProxy
 
 							Direction outputDirection = RotationHelper.getOutputDirectionFromRelativeHitVec(relativeHitVec, attachmentDirection);
 							RotationHelper.getRotationIndexForDirection(attachmentDirection, outputDirection);
-							BlockState state = HyperboxBlock.getStateForPlacement(block.getDefaultState(), placePos, attachmentDirection, relativeHitVec);
+							BlockState state = HyperboxBlock.getStateForPlacement(Hyperbox.INSTANCE.hyperboxPreviewBlock.get().getDefaultState(), placePos, attachmentDirection, relativeHitVec);
 
 							BlockPreviewRenderer.renderBlockPreview(placePos, state, world, event.getInfo().getProjectedView(), event.getMatrix(), event.getBuffers());
 

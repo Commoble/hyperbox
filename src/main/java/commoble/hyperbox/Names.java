@@ -4,6 +4,7 @@ public class Names
 {
 	// blocks
 	public static final String HYPERBOX = "hyperbox";
+	public static final String HYPERBOX_PREVIEW = "hyperbox_preview";
 	public static final String APERTURE = "aperture";
 	
 	// capability

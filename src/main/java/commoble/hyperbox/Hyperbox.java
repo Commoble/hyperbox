@@ -7,14 +7,15 @@ import com.google.common.collect.ImmutableSet;
 import commoble.hyperbox.blocks.ApertureBlock;
 import commoble.hyperbox.blocks.ApertureTileEntity;
 import commoble.hyperbox.blocks.HyperboxBlock;
+import commoble.hyperbox.blocks.HyperboxBlockItem;
 import commoble.hyperbox.blocks.HyperboxTileEntity;
-import commoble.hyperbox.capability.ReturnPointCapability;
 import commoble.hyperbox.client.ClientProxy;
 import commoble.hyperbox.dimension.DelayedTeleportData;
 import commoble.hyperbox.dimension.DimensionRemover;
 import commoble.hyperbox.dimension.HyperboxChunkGenerator;
 import commoble.hyperbox.dimension.HyperboxDimension;
 import commoble.hyperbox.dimension.HyperboxWorldData;
+import commoble.hyperbox.dimension.ReturnPointCapability;
 import commoble.hyperbox.network.PacketType;
 import commoble.hyperbox.network.SoundPacket;
 import commoble.hyperbox.network.UpdateDimensionsPacket;
@@ -81,6 +82,8 @@ public class Hyperbox
 	
 	public final ServerConfig serverConfig;
 	public final RegistryObject<HyperboxBlock> hyperboxBlock;
+	// the placement preview renderer gets the color handler from the player's currently held item instead of the blockstate
+	public final RegistryObject<HyperboxBlock> hyperboxPreviewBlock;
 	public final RegistryObject<ApertureBlock> apertureBlock;
 	public final RegistryObject<BlockItem> hyperboxItem;
 	public final RegistryObject<TileEntityType<HyperboxTileEntity>> hyperboxTileEntityType;
@@ -100,8 +103,9 @@ public class Hyperbox
 		DeferredRegister<Item> items = makeRegister(modBus, ForgeRegistries.ITEMS);
 		DeferredRegister<TileEntityType<?>> tileEntities = makeRegister(modBus, ForgeRegistries.TILE_ENTITIES);
 		
-		this.hyperboxBlock = blocks.register(Names.HYPERBOX, () -> new HyperboxBlock(AbstractBlock.Properties.from(Blocks.PURPUR_BLOCK).setOpaque(HyperboxBlock::getIsNormalCube)));
-		this.hyperboxItem = items.register(Names.HYPERBOX, () -> new BlockItem(this.hyperboxBlock.get(), new Item.Properties().group(ItemGroup.DECORATIONS)));
+		this.hyperboxBlock = blocks.register(Names.HYPERBOX, () -> new HyperboxBlock(AbstractBlock.Properties.from(Blocks.PURPUR_BLOCK).hardnessAndResistance(2F, 1200F).setOpaque(HyperboxBlock::getIsNormalCube)));
+		this.hyperboxPreviewBlock = blocks.register(Names.HYPERBOX_PREVIEW, () -> new HyperboxBlock(AbstractBlock.Properties.from(Blocks.PURPUR_BLOCK).hardnessAndResistance(2F, 1200F).setOpaque(HyperboxBlock::getIsNormalCube)));
+		this.hyperboxItem = items.register(Names.HYPERBOX, () -> new HyperboxBlockItem(this.hyperboxBlock.get(), new Item.Properties().group(ItemGroup.DECORATIONS)));
 		this.hyperboxTileEntityType = tileEntities.register(Names.HYPERBOX, () -> TileEntityType.Builder.create(HyperboxTileEntity::new, this.hyperboxBlock.get()).build(null));
 		
 		this.apertureBlock = blocks.register(Names.APERTURE, () -> new ApertureBlock(AbstractBlock.Properties.from(Blocks.BARRIER).setLightLevel(state -> 6).setOpaque(HyperboxBlock::getIsNormalCube)));

@@ -1,6 +1,7 @@
 package commoble.hyperbox.blocks;
 
 import java.util.Optional;
+import java.util.OptionalInt;
 import java.util.UUID;
 
 import javax.annotation.Nullable;
@@ -30,6 +31,7 @@ import net.minecraft.world.IBlockReader;
 import net.minecraft.world.World;
 import net.minecraft.world.server.ServerWorld;
 import net.minecraftforge.common.capabilities.Capability;
+import net.minecraftforge.common.util.Constants;
 import net.minecraftforge.common.util.LazyOptional;
 
 public class HyperboxTileEntity extends TileEntity implements INameable
@@ -38,9 +40,11 @@ public class HyperboxTileEntity extends TileEntity implements INameable
 	public static final String NAME = "CustomName"; // consistency with vanilla custom name data
 	public static final String WEAK_POWER = "weak_power";
 	public static final String STRONG_POWER = "strong_power";
+	public static final String COLOR = "color";
 	// key to the hyperbox world stored in this te
 	private Optional<RegistryKey<World>> worldKey = Optional.empty();
 	private Optional<ITextComponent> name = Optional.empty();
+	private OptionalInt color = OptionalInt.empty();
 	// power output by side index of "original"/unrotated output side (linked to the aperture on the same side of the subdimension)
 	private int[] weakPowerDUNSWE = {0,0,0,0,0,0};
 	private int[] strongPowerDUNSWE = {0,0,0,0,0,0};
@@ -130,6 +134,25 @@ public class HyperboxTileEntity extends TileEntity implements INameable
 		}
 		super.onChunkUnloaded();
 	}
+	
+	public OptionalInt getColorIfPresent()
+	{
+		return this.color;
+	}
+	
+	public void setColor(OptionalInt color)
+	{
+		this.color = color;
+		this.markDirty();
+		BlockState state = this.getBlockState();
+		this.world.notifyBlockUpdate(this.pos, state, state, Constants.BlockFlags.DEFAULT);
+		this.world.markBlockRangeForRenderUpdate(this.pos, state, state);
+	}
+	
+	public int getColorOrDefault()
+	{
+		return this.color.orElse(HyperboxBlockItem.DEFAULT_COLOR);
+	}
 
 	public Optional<RegistryKey<World>> getWorldKey()
 	{
@@ -179,7 +202,7 @@ public class HyperboxTileEntity extends TileEntity implements INameable
 	public ServerWorld getOrCreateWorld(MinecraftServer server)
 	{
 		ServerWorld targetWorld = this.getChildWorld(server, this.getOrCreateWorldKey());
-		HyperboxWorldData.getOrCreate(targetWorld).setWorldPos(server, targetWorld.getDimensionKey(), this.world.getDimensionKey(), this.pos);
+		HyperboxWorldData.getOrCreate(targetWorld).setWorldPos(server, targetWorld, targetWorld.getDimensionKey(), this.world.getDimensionKey(), this.pos, this.getColorOrDefault());
 		return targetWorld;
 	}
 	
@@ -288,6 +311,7 @@ public class HyperboxTileEntity extends TileEntity implements INameable
 	
 	public CompoundNBT writeClientSensitiveData(CompoundNBT nbt)
 	{
+		this.color.ifPresent(i -> nbt.putInt(COLOR, i));
 		nbt.putIntArray(WEAK_POWER, this.weakPowerDUNSWE);
 		nbt.putIntArray(STRONG_POWER, this.strongPowerDUNSWE);
 		return nbt;
@@ -295,6 +319,9 @@ public class HyperboxTileEntity extends TileEntity implements INameable
 	
 	public void readClientSensitiveData(CompoundNBT nbt)
 	{
+		this.color = nbt.contains(COLOR)
+			? OptionalInt.of(nbt.getInt(COLOR))
+			: OptionalInt.empty();
 		this.weakPowerDUNSWE = nbt.getIntArray(WEAK_POWER);
 		this.strongPowerDUNSWE = nbt.getIntArray(STRONG_POWER);
 	}

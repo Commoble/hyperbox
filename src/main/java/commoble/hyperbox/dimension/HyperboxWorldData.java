@@ -1,10 +1,12 @@
 package commoble.hyperbox.dimension;
 
 import commoble.hyperbox.Hyperbox;
+import commoble.hyperbox.blocks.ApertureTileEntity;
 import commoble.hyperbox.blocks.HyperboxTileEntity;
 import net.minecraft.nbt.CompoundNBT;
 import net.minecraft.nbt.NBTUtil;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.util.Direction;
 import net.minecraft.util.RegistryKey;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.BlockPos;
@@ -40,16 +42,21 @@ public class HyperboxWorldData extends WorldSavedData
 		return world.getSavedData().getOrCreate(HyperboxWorldData::new, DATA_KEY);
 	}
 	
-	public void setWorldPos(MinecraftServer server, RegistryKey<World> thisWorld, RegistryKey<World> parentWorld, BlockPos parentPos)
+	public void setWorldPos(MinecraftServer server, ServerWorld thisWorld, RegistryKey<World> thisWorldKey, RegistryKey<World> parentWorldKey, BlockPos parentPos, int color)
 	{
 		RegistryKey<World> oldParentWorld = this.parentWorld;
 		BlockPos oldParentPos = this.parentPos;
-		if (!oldParentWorld.equals(parentWorld) || !(oldParentPos.equals(parentPos)))
+		if (!oldParentWorld.equals(parentWorldKey) || !(oldParentPos.equals(parentPos)))
 		{
-			this.clearOldParent(server, thisWorld, oldParentWorld, oldParentPos);
+			this.clearOldParent(server, thisWorldKey, oldParentWorld, oldParentPos);
 		}
-		this.parentWorld = parentWorld;
+		this.parentWorld = parentWorldKey;
 		this.parentPos = parentPos;
+		for (Direction dir : Direction.values())
+		{
+			BlockPos aperturePos = HyperboxChunkGenerator.CENTER.offset(dir, 7);
+			ApertureTileEntity.get(thisWorld, aperturePos).ifPresent(aperture -> aperture.setColor(color));
+		}
 		this.markDirty();
 	}
 	

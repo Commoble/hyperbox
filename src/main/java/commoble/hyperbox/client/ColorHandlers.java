@@ -2,21 +2,79 @@ package commoble.hyperbox.client;
 
 import javax.annotation.Nullable;
 
+import commoble.hyperbox.blocks.ApertureTileEntity;
+import commoble.hyperbox.blocks.HyperboxBlockItem;
+import commoble.hyperbox.blocks.HyperboxTileEntity;
 import net.minecraft.block.BlockState;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.entity.player.ClientPlayerEntity;
+import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
+import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.IBlockDisplayReader;
 
 public class ColorHandlers
 {
-	public static final int DEFAULT_HYPERBOX_BACKGROUND = 0x4a354a;
 	public static final int NO_TINT = 0xFFFFFF;
 	
 	public static int getHyperboxBlockColor(BlockState state, @Nullable IBlockDisplayReader world, @Nullable BlockPos pos, int tintIndex)
 	{
 		if (tintIndex == 1)
 		{
-			return DEFAULT_HYPERBOX_BACKGROUND;
+			if (world != null && pos != null)
+			{
+				TileEntity te = world.getTileEntity(pos);
+				return te instanceof HyperboxTileEntity
+					? ((HyperboxTileEntity)te).getColorOrDefault()
+					: HyperboxBlockItem.DEFAULT_COLOR;
+			}
+			else
+			{
+				return HyperboxBlockItem.DEFAULT_COLOR;
+			}
+		}
+		else
+		{
+			return NO_TINT;
+		}
+	}
+	
+	// the preview renderer needs to use the color from the itemstack as TE data is not available
+	public static int getHyperboxPreviewBlockColor(BlockState state, @Nullable IBlockDisplayReader world, @Nullable BlockPos pos, int tintIndex)
+	{
+		if (tintIndex == 1)
+		{
+			@SuppressWarnings("resource")
+			ClientPlayerEntity player = Minecraft.getInstance().player;
+			if (player != null)
+			{
+				return HyperboxBlockItem.getColorIfHyperbox(player.getHeldItemMainhand())
+					.orElse(HyperboxBlockItem.DEFAULT_COLOR);
+			}
+			return HyperboxBlockItem.DEFAULT_COLOR;
+		}
+		else
+		{
+			return NO_TINT;
+		}
+	}
+	
+	public static int getApertureBlockColor(BlockState state, @Nullable IBlockDisplayReader world, @Nullable BlockPos pos, int tintIndex)
+	{
+		if (tintIndex == 1)
+		{
+			if (world != null && pos != null)
+			{
+				TileEntity te = world.getTileEntity(pos);
+				return te instanceof ApertureTileEntity
+					? ((ApertureTileEntity)te).getColor()
+					: HyperboxBlockItem.DEFAULT_COLOR;
+			}
+			else
+			{
+				return HyperboxBlockItem.DEFAULT_COLOR;
+			}
 		}
 		else
 		{
@@ -26,9 +84,10 @@ public class ColorHandlers
 	
 	public static int getHyperboxItemColor(ItemStack stack, int tintIndex)
 	{
-		if (tintIndex == 1)
+		Item item = stack.getItem();
+		if (tintIndex == 1 && item instanceof HyperboxBlockItem)
 		{
-			return DEFAULT_HYPERBOX_BACKGROUND;
+			return ((HyperboxBlockItem)item).getColor(stack);
 		}
 		else
 		{

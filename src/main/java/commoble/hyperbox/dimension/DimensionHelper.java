@@ -11,7 +11,6 @@ import com.mojang.serialization.Lifecycle;
 
 import commoble.hyperbox.Hyperbox;
 import commoble.hyperbox.ReflectionHelper;
-import commoble.hyperbox.capability.ReturnPointCapability;
 import commoble.hyperbox.network.UpdateDimensionsPacket;
 import net.minecraft.entity.player.ServerPlayerEntity;
 import net.minecraft.server.MinecraftServer;
