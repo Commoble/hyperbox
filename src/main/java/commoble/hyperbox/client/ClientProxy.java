@@ -10,6 +10,8 @@ import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.player.ClientPlayerEntity;
+import net.minecraft.client.renderer.RenderType;
+import net.minecraft.client.renderer.RenderTypeLookup;
 import net.minecraft.client.world.DimensionRenderInfo;
 import net.minecraft.item.BlockItem;
 import net.minecraft.item.Item;
@@ -20,6 +22,7 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.BlockRayTraceResult;
 import net.minecraft.util.math.vector.Vector3d;
 import net.minecraft.world.World;
+import net.minecraftforge.client.event.ColorHandlerEvent;
 import net.minecraftforge.client.event.DrawHighlightEvent;
 import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.fml.config.ModConfig;
@@ -35,6 +38,8 @@ public class ClientProxy
 		clientConfig = ConfigHelper.register(ModConfig.Type.CLIENT, ClientConfig::new);
 
 		modBus.addListener(ClientProxy::onClientSetup);
+		modBus.addListener(ClientProxy::onRegisterBlockColors);
+		modBus.addListener(ClientProxy::onRegisterItemColors);
 		forgeBus.addListener(ClientProxy::onHighlightBlock);
 	}
 
@@ -47,8 +52,22 @@ public class ClientProxy
 	{
 		Object2ObjectMap<ResourceLocation, DimensionRenderInfo> renderInfoMap = ReflectionHelper.getStaticFieldOnce(DimensionRenderInfo.class, "field_239208_a_");
 		renderInfoMap.put(Hyperbox.HYPERBOX_ID, new HyperboxRenderInfo());
+		
+		RenderTypeLookup.setRenderLayer(Hyperbox.INSTANCE.hyperboxBlock.get(), RenderType.getCutout());
+		RenderTypeLookup.setRenderLayer(Hyperbox.INSTANCE.apertureBlock.get(), RenderType.getCutout());
 	}
-	public static void onHighlightBlock(DrawHighlightEvent.HighlightBlock event)
+	
+	static void onRegisterBlockColors(ColorHandlerEvent.Block event)
+	{
+		event.getBlockColors().register(ColorHandlers::getHyperboxBlockColor, Hyperbox.INSTANCE.hyperboxBlock.get());
+	}
+	
+	static void onRegisterItemColors(ColorHandlerEvent.Item event)
+	{
+		event.getItemColors().register(ColorHandlers::getHyperboxItemColor, Hyperbox.INSTANCE.hyperboxItem.get());
+	}
+	
+	static void onHighlightBlock(DrawHighlightEvent.HighlightBlock event)
 	{
 		if (clientConfig.showPlacementPreview.get())
 		{

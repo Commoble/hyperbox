@@ -9,8 +9,10 @@ import java.util.function.Function;
 import com.google.common.collect.ImmutableList;
 import com.mojang.serialization.Lifecycle;
 
+import commoble.hyperbox.Hyperbox;
 import commoble.hyperbox.ReflectionHelper;
 import commoble.hyperbox.capability.ReturnPointCapability;
+import commoble.hyperbox.network.UpdateDimensionsPacket;
 import net.minecraft.entity.player.ServerPlayerEntity;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.RegistryKey;
@@ -175,6 +177,8 @@ public class DimensionHelper
 		
 		// fire world load event
 		MinecraftForge.EVENT_BUS.post(new WorldEvent.Load(newWorld)); // event isn't cancellable
+		
+		Hyperbox.CHANNEL.sendToServer(new UpdateDimensionsPacket(worldKey, true));
 		
 		return newWorld;
 	}

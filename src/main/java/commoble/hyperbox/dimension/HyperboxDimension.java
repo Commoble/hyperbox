@@ -68,24 +68,19 @@ public class HyperboxDimension
 		while (isHyperboxDimension(nextKey) && !foundKeys.contains(nextKey))
 		{
 			foundKeys.add(nextKey);
-			nextWorld = getParentWorld(server,nextWorld);
 			HyperboxWorldData data = HyperboxWorldData.getOrCreate(nextWorld);
 			RegistryKey<World> parentKey = data.getParentWorld();
-			nextWorld = server.getWorld(parentKey);
+			ServerWorld parentWorld = server.getWorld(parentKey);
 			iterations++;
-			if (nextWorld == targetWorld)
+			if (parentWorld == targetWorld)
 				return new IterationResult(iterations, data.getParentPos());
-			if (nextWorld == null)
+			if (parentWorld == null)
 				return IterationResult.FAILURE;
 			nextKey = parentKey;
+			nextWorld = parentWorld;
 		}
 		
 		return IterationResult.FAILURE;
-	}
-	
-	public static @Nullable ServerWorld getParentWorld(MinecraftServer server, ServerWorld world)
-	{
-		return server.getWorld(HyperboxWorldData.getOrCreate(world).getParentWorld());
 	}
 	
 	public static class IterationResult

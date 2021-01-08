@@ -19,13 +19,12 @@ import net.minecraft.world.storage.WorldSavedData;
 
 // we can't teleport players from onBlockActivated as there are assumptions
 // in the right click processing that assume a player's world does not change
-// so what we'll do is schedule a teleport to occur one tick later
+// so what we'll do is schedule a teleport to occur at the end of the world tick
 public class DelayedTeleportData extends WorldSavedData
 {
 	public static final String DATA_KEY = Hyperbox.MODID + ":delayed_events";
 	
 	private List<TeleportEntry> delayedTeleports = new ArrayList<>();
-//	private List<RegistryKey<World>> dimensionUnloads = new ArrayList<>();
 
 	public DelayedTeleportData()
 	{
@@ -38,8 +37,11 @@ public class DelayedTeleportData extends WorldSavedData
 	}
 	
 	/**
-	 * Does *not* create worlds that don't already exist
-	 * So they should be created by the thing that schedules the tick, if possible
+	 * This is to be called from the world tick event, if the world being ticked
+	 * is a ServerWorld and if the tick phase is the end of the world tick.
+	 * 
+	 * Does *not* create dynamic worlds that don't already exist,
+	 * So dynamic worlds should be created by the thing that schedules the tick, if possible
 	 * @param world The world that is being ticked and contains a data instance
 	 */
 	public static void tick(ServerWorld world)
@@ -65,11 +67,6 @@ public class DelayedTeleportData extends WorldSavedData
 	{
 		this.delayedTeleports.add(new TeleportEntry(PlayerEntity.getUUID(player.getGameProfile()), destination, targetVec));
 	}
-	
-//	public void scheduleDimensionUnload(RegistryKey<World> world)
-//	{
-//		this.dimensionUnloads.add(world);
-//	}
 
 	@Override
 	public void read(CompoundNBT nbt)

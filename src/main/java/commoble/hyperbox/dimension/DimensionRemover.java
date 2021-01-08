@@ -15,8 +15,10 @@ import com.google.common.collect.Lists;
 import com.mojang.datafixers.util.Pair;
 import com.mojang.serialization.Lifecycle;
 
+import commoble.hyperbox.Hyperbox;
 import commoble.hyperbox.ReflectionHelper;
 import commoble.hyperbox.ReflectionHelper.MutableInstanceField;
+import commoble.hyperbox.network.UpdateDimensionsPacket;
 import it.unimi.dsi.fastutil.objects.ObjectList;
 import net.minecraft.entity.player.ServerPlayerEntity;
 import net.minecraft.server.MinecraftServer;
@@ -108,6 +110,8 @@ public class DimensionRemover
 				removedKeys.add(dimensionKey);
 				removedWorlds.add(removedWorld);
 			}
+			
+			Hyperbox.CHANNEL.sendToServer(new UpdateDimensionsPacket(key, false));
 		}
 
 		if (!removedKeys.isEmpty())

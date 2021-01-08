@@ -1,5 +1,5 @@
 {
-	"parent": "block/cube",
+    "parent": "hyperbox:block/hyperbox_template",
 	"textures": 
 	{
 		"down": "hyperbox:block/hyperbox_west",
@@ -8,6 +8,7 @@
 		"south": "hyperbox:block/hyperbox_south",
 		"west": "hyperbox:block/hyperbox_up",
 		"east": "hyperbox:block/hyperbox_down",
+		"background": "hyperbox:block/hyperbox_background",
 		"particle": "hyperbox:block/hyperbox"
 	}
 }

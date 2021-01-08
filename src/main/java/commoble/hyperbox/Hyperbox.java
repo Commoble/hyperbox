@@ -1,7 +1,5 @@
 package commoble.hyperbox;
 
-import java.util.function.Consumer;
-
 import javax.annotation.Nullable;
 
 import com.google.common.collect.ImmutableSet;
@@ -17,6 +15,9 @@ import commoble.hyperbox.dimension.DimensionRemover;
 import commoble.hyperbox.dimension.HyperboxChunkGenerator;
 import commoble.hyperbox.dimension.HyperboxDimension;
 import commoble.hyperbox.dimension.HyperboxWorldData;
+import commoble.hyperbox.network.PacketType;
+import commoble.hyperbox.network.SoundPacket;
+import commoble.hyperbox.network.UpdateDimensionsPacket;
 import net.minecraft.block.AbstractBlock;
 import net.minecraft.block.Block;
 import net.minecraft.block.Blocks;
@@ -43,7 +44,6 @@ import net.minecraftforge.common.capabilities.CapabilityManager;
 import net.minecraftforge.event.AttachCapabilitiesEvent;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.event.TickEvent.WorldTickEvent;
-import net.minecraftforge.event.entity.PlaySoundAtEntityEvent;
 import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.fml.RegistryObject;
 import net.minecraftforge.fml.common.Mod;
@@ -51,6 +51,8 @@ import net.minecraftforge.fml.config.ModConfig.Type;
 import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 import net.minecraftforge.fml.loading.FMLEnvironment;
+import net.minecraftforge.fml.network.NetworkRegistry;
+import net.minecraftforge.fml.network.simple.SimpleChannel;
 import net.minecraftforge.registries.DeferredRegister;
 import net.minecraftforge.registries.ForgeRegistries;
 import net.minecraftforge.registries.IForgeRegistry;
@@ -63,6 +65,13 @@ public class Hyperbox
 	public static final String MODID = "hyperbox";
 	public static Hyperbox INSTANCE;
 	
+	public static final String PROTOCOL_VERSION = "1";
+	public static final SimpleChannel CHANNEL = NetworkRegistry.newSimpleChannel(
+		new ResourceLocation(MODID,MODID),
+		() -> PROTOCOL_VERSION,
+		PROTOCOL_VERSION::equals,
+		PROTOCOL_VERSION::equals);
+	
 	public static final ResourceLocation HYPERBOX_ID = new ResourceLocation(MODID, Names.HYPERBOX);
 	// keys for the hyperbox dimension stuff
 	public static final RegistryKey<Biome> BIOME_KEY = RegistryKey.getOrCreateKey(Registry.BIOME_KEY, HYPERBOX_ID);
@@ -73,6 +82,7 @@ public class Hyperbox
 	public final ServerConfig serverConfig;
 	public final RegistryObject<HyperboxBlock> hyperboxBlock;
 	public final RegistryObject<ApertureBlock> apertureBlock;
+	public final RegistryObject<BlockItem> hyperboxItem;
 	public final RegistryObject<TileEntityType<HyperboxTileEntity>> hyperboxTileEntityType;
 	public final RegistryObject<TileEntityType<ApertureTileEntity>> apertureTileEntityType;
 	
@@ -91,7 +101,7 @@ public class Hyperbox
 		DeferredRegister<TileEntityType<?>> tileEntities = makeRegister(modBus, ForgeRegistries.TILE_ENTITIES);
 		
 		this.hyperboxBlock = blocks.register(Names.HYPERBOX, () -> new HyperboxBlock(AbstractBlock.Properties.from(Blocks.PURPUR_BLOCK).setOpaque(HyperboxBlock::getIsNormalCube)));
-		items.register(Names.HYPERBOX, () -> new BlockItem(this.hyperboxBlock.get(), new Item.Properties().group(ItemGroup.DECORATIONS)));
+		this.hyperboxItem = items.register(Names.HYPERBOX, () -> new BlockItem(this.hyperboxBlock.get(), new Item.Properties().group(ItemGroup.DECORATIONS)));
 		this.hyperboxTileEntityType = tileEntities.register(Names.HYPERBOX, () -> TileEntityType.Builder.create(HyperboxTileEntity::new, this.hyperboxBlock.get()).build(null));
 		
 		this.apertureBlock = blocks.register(Names.APERTURE, () -> new ApertureBlock(AbstractBlock.Properties.from(Blocks.BARRIER).setLightLevel(state -> 6).setOpaque(HyperboxBlock::getIsNormalCube)));
@@ -101,9 +111,10 @@ public class Hyperbox
 		modBus.addListener(this::onCommonSetup);
 		forgeBus.addListener(this::onWorldTick);
 		forgeBus.addGenericListener(Entity.class, this::onAttachEntityCapabilities);
-		
-		Consumer<PlaySoundAtEntityEvent> soundEvent = event -> event.setVolume(event.getVolume() / 2);
-		forgeBus.addListener(soundEvent);
+
+		int packetID = 0;
+		PacketType.register(packetID++, CHANNEL, SoundPacket.CODEC, SoundPacket.INVALID);
+		PacketType.register(packetID++, CHANNEL, UpdateDimensionsPacket.CODEC, UpdateDimensionsPacket.INVALID);
 		
 		// subscribe client-build event handlers
 		if (FMLEnvironment.dist == Dist.CLIENT)
