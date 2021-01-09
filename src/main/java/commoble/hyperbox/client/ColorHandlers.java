@@ -26,7 +26,7 @@ public class ColorHandlers
 			{
 				TileEntity te = world.getTileEntity(pos);
 				return te instanceof HyperboxTileEntity
-					? ((HyperboxTileEntity)te).getColorOrDefault()
+					? ((HyperboxTileEntity)te).getColor()
 					: HyperboxBlockItem.DEFAULT_COLOR;
 			}
 			else
@@ -49,8 +49,7 @@ public class ColorHandlers
 			ClientPlayerEntity player = Minecraft.getInstance().player;
 			if (player != null)
 			{
-				return HyperboxBlockItem.getColorIfHyperbox(player.getHeldItemMainhand())
-					.orElse(HyperboxBlockItem.DEFAULT_COLOR);
+				return HyperboxBlockItem.getColorIfHyperbox(player.getHeldItemMainhand());
 			}
 			return HyperboxBlockItem.DEFAULT_COLOR;
 		}

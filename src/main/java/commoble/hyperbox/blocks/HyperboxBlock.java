@@ -145,7 +145,7 @@ public class HyperboxBlock extends Block
 				if (item instanceof HyperboxBlockItem)
 				{
 					HyperboxBlockItem hyperboxItem = (HyperboxBlockItem)item;
-					te.setColor(hyperboxItem.getColorIfPresent(stack));
+					te.setColor(hyperboxItem.getColor(stack));
 				}
 				if (!worldIn.isRemote)
 				{

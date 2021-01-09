@@ -1,7 +1,6 @@
 package commoble.hyperbox.blocks;
 
 import java.util.Optional;
-import java.util.OptionalInt;
 import java.util.UUID;
 
 import javax.annotation.Nullable;
@@ -44,7 +43,7 @@ public class HyperboxTileEntity extends TileEntity implements INameable
 	// key to the hyperbox world stored in this te
 	private Optional<RegistryKey<World>> worldKey = Optional.empty();
 	private Optional<ITextComponent> name = Optional.empty();
-	private OptionalInt color = OptionalInt.empty();
+	private int color = HyperboxBlockItem.DEFAULT_COLOR;
 	// power output by side index of "original"/unrotated output side (linked to the aperture on the same side of the subdimension)
 	private int[] weakPowerDUNSWE = {0,0,0,0,0,0};
 	private int[] strongPowerDUNSWE = {0,0,0,0,0,0};
@@ -135,23 +134,21 @@ public class HyperboxTileEntity extends TileEntity implements INameable
 		super.onChunkUnloaded();
 	}
 	
-	public OptionalInt getColorIfPresent()
+	public void setColor(int color)
+	{
+		if (this.color != color)
+		{
+			this.color = color;
+			this.markDirty();
+			BlockState state = this.getBlockState();
+			this.world.notifyBlockUpdate(this.pos, state, state, Constants.BlockFlags.DEFAULT);
+			this.world.markBlockRangeForRenderUpdate(this.pos, state, state);
+		}
+	}
+	
+	public int getColor()
 	{
 		return this.color;
-	}
-	
-	public void setColor(OptionalInt color)
-	{
-		this.color = color;
-		this.markDirty();
-		BlockState state = this.getBlockState();
-		this.world.notifyBlockUpdate(this.pos, state, state, Constants.BlockFlags.DEFAULT);
-		this.world.markBlockRangeForRenderUpdate(this.pos, state, state);
-	}
-	
-	public int getColorOrDefault()
-	{
-		return this.color.orElse(HyperboxBlockItem.DEFAULT_COLOR);
 	}
 
 	public Optional<RegistryKey<World>> getWorldKey()
@@ -202,7 +199,7 @@ public class HyperboxTileEntity extends TileEntity implements INameable
 	public ServerWorld getOrCreateWorld(MinecraftServer server)
 	{
 		ServerWorld targetWorld = this.getChildWorld(server, this.getOrCreateWorldKey());
-		HyperboxWorldData.getOrCreate(targetWorld).setWorldPos(server, targetWorld, targetWorld.getDimensionKey(), this.world.getDimensionKey(), this.pos, this.getColorOrDefault());
+		HyperboxWorldData.getOrCreate(targetWorld).setWorldPos(server, targetWorld, targetWorld.getDimensionKey(), this.world.getDimensionKey(), this.pos, this.getColor());
 		return targetWorld;
 	}
 	
@@ -311,7 +308,10 @@ public class HyperboxTileEntity extends TileEntity implements INameable
 	
 	public CompoundNBT writeClientSensitiveData(CompoundNBT nbt)
 	{
-		this.color.ifPresent(i -> nbt.putInt(COLOR, i));
+		if (this.color != HyperboxBlockItem.DEFAULT_COLOR)
+		{
+			nbt.putInt(COLOR, this.color);
+		}
 		nbt.putIntArray(WEAK_POWER, this.weakPowerDUNSWE);
 		nbt.putIntArray(STRONG_POWER, this.strongPowerDUNSWE);
 		return nbt;
@@ -320,8 +320,8 @@ public class HyperboxTileEntity extends TileEntity implements INameable
 	public void readClientSensitiveData(CompoundNBT nbt)
 	{
 		this.color = nbt.contains(COLOR)
-			? OptionalInt.of(nbt.getInt(COLOR))
-			: OptionalInt.empty();
+			? nbt.getInt(COLOR)
+			: HyperboxBlockItem.DEFAULT_COLOR;
 		this.weakPowerDUNSWE = nbt.getIntArray(WEAK_POWER);
 		this.strongPowerDUNSWE = nbt.getIntArray(STRONG_POWER);
 	}
