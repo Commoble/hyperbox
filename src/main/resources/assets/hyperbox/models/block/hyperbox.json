@@ -9,6 +9,6 @@
 		"west": "hyperbox:block/hyperbox_west",
 		"east": "hyperbox:block/hyperbox_east",
 		"background": "hyperbox:block/hyperbox_background",
-		"particle": "hyperbox:block/hyperbox"
+		"particle": "hyperbox:block/hyperbox_background"
 	}
 }

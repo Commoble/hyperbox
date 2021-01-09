@@ -17,10 +17,11 @@ import net.minecraft.world.IBlockDisplayReader;
 public class ColorHandlers
 {
 	public static final int NO_TINT = 0xFFFFFF;
+	public static final int BACKGROUND_TINT = 0;
 	
 	public static int getHyperboxBlockColor(BlockState state, @Nullable IBlockDisplayReader world, @Nullable BlockPos pos, int tintIndex)
 	{
-		if (tintIndex == 1)
+		if (tintIndex == BACKGROUND_TINT)
 		{
 			if (world != null && pos != null)
 			{
@@ -43,7 +44,7 @@ public class ColorHandlers
 	// the preview renderer needs to use the color from the itemstack as TE data is not available
 	public static int getHyperboxPreviewBlockColor(BlockState state, @Nullable IBlockDisplayReader world, @Nullable BlockPos pos, int tintIndex)
 	{
-		if (tintIndex == 1)
+		if (tintIndex == BACKGROUND_TINT)
 		{
 			@SuppressWarnings("resource")
 			ClientPlayerEntity player = Minecraft.getInstance().player;
@@ -61,7 +62,7 @@ public class ColorHandlers
 	
 	public static int getApertureBlockColor(BlockState state, @Nullable IBlockDisplayReader world, @Nullable BlockPos pos, int tintIndex)
 	{
-		if (tintIndex == 1)
+		if (tintIndex == BACKGROUND_TINT)
 		{
 			if (world != null && pos != null)
 			{
@@ -84,7 +85,7 @@ public class ColorHandlers
 	public static int getHyperboxItemColor(ItemStack stack, int tintIndex)
 	{
 		Item item = stack.getItem();
-		if (tintIndex == 1 && item instanceof HyperboxBlockItem)
+		if (tintIndex == BACKGROUND_TINT && item instanceof HyperboxBlockItem)
 		{
 			return ((HyperboxBlockItem)item).getColor(stack);
 		}
