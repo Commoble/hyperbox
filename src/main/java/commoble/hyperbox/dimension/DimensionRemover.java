@@ -27,6 +27,7 @@ import net.minecraft.world.border.IBorderListener;
 import net.minecraft.world.border.WorldBorder;
 import net.minecraft.world.gen.settings.DimensionGeneratorSettings;
 import net.minecraft.world.server.ServerWorld;
+import net.minecraftforge.fml.network.PacketDistributor;
 
 public class DimensionRemover
 {
@@ -74,7 +75,7 @@ public class DimensionRemover
 				removedWorlds.add(removedWorld);
 			}
 			
-			Hyperbox.CHANNEL.sendToServer(new UpdateDimensionsPacket(key, false));
+			Hyperbox.CHANNEL.send(PacketDistributor.ALL.noArg(), new UpdateDimensionsPacket(key, false));
 		}
 
 		if (!removedKeys.isEmpty())
