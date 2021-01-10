@@ -4,14 +4,11 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.Executor;
 import java.util.function.BiFunction;
-import java.util.function.Function;
 
 import com.google.common.collect.ImmutableList;
 import com.mojang.serialization.Lifecycle;
 
 import commoble.hyperbox.Hyperbox;
-import commoble.hyperbox.ReflectionHelper;
-import commoble.hyperbox.network.UpdateDimensionsPacket;
 import net.minecraft.entity.player.ServerPlayerEntity;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.RegistryKey;
@@ -23,7 +20,6 @@ import net.minecraft.world.World;
 import net.minecraft.world.biome.BiomeManager;
 import net.minecraft.world.border.IBorderListener;
 import net.minecraft.world.chunk.listener.IChunkStatusListener;
-import net.minecraft.world.chunk.listener.IChunkStatusListenerFactory;
 import net.minecraft.world.gen.settings.DimensionGeneratorSettings;
 import net.minecraft.world.server.ServerWorld;
 import net.minecraft.world.storage.DerivedWorldInfo;
@@ -33,19 +29,7 @@ import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.world.WorldEvent;
 
 public class DimensionHelper
-{
-	// we need to read some private fields in MinecraftServer
-	// we can use Access Transformers, Accessor Mixins, or ObfuscationReflectionHelper to get at these
-	// we'll use ORH here as ATs and Mixins seem to be causing headaches for dependant mods lately
-		// it also lets us define the private-field-getting-shenanigans in the same class we're using them
-		// it also doesn't need any extra resources or buildscript stuff, which makes testing faster
-	public static final Function<MinecraftServer, IChunkStatusListenerFactory> CHUNK_STATUS_LISTENER_FACTORY_FIELD =
-		ReflectionHelper.getInstanceFieldGetter(MinecraftServer.class, "field_213220_d");
-	public static final Function<MinecraftServer, Executor> BACKGROUND_EXECUTOR_FIELD =
-		ReflectionHelper.getInstanceFieldGetter(MinecraftServer.class, "field_213217_au");
-	public static final Function<MinecraftServer, LevelSave> ANVIL_CONVERTER_FOR_ANVIL_FILE_FIELD =
-		ReflectionHelper.getInstanceFieldGetter(MinecraftServer.class, "field_71310_m");
-	
+{	
 	// helper for sending a given player to another dimension
 	// for static dimensions (from datapacks, etc) use MinecraftServer::getWorld to get the world object
 	// for dynamic dimensions (mystcrafty) use DimensionHelper.getOrCreateWorld to get the target world
@@ -133,9 +117,9 @@ public class DimensionHelper
 			// backgroundExecutor
 			// anvilConverterForAnvilFile
 		// the int in create() here is radius of chunks to watch, 11 is what the server uses when it initializes worlds
-		IChunkStatusListener chunkListener = CHUNK_STATUS_LISTENER_FACTORY_FIELD.apply(server).create(11);
-		Executor executor = BACKGROUND_EXECUTOR_FIELD.apply(server);
-		LevelSave levelSave = ANVIL_CONVERTER_FOR_ANVIL_FILE_FIELD.apply(server);
+		IChunkStatusListener chunkListener = server.chunkStatusListenerFactory.create(11);
+		Executor executor = server.backgroundExecutor;
+		LevelSave anvilConverter = server.anvilConverterForAnvilFile;
 		
 		// this is the same order server init creates these worlds:
 		// instantiate world, add border listener, add to map, fire world load event
@@ -151,7 +135,7 @@ public class DimensionHelper
 		ServerWorld newWorld = new ServerWorld(
 			server,
 			executor,
-			levelSave,
+			anvilConverter,
 			derivedWorldInfo,
 			worldKey,
 			dimension.getDimensionType(),

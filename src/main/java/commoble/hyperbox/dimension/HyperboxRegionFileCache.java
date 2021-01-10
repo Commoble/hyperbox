@@ -9,6 +9,7 @@ import net.minecraft.nbt.CompoundNBT;
 import net.minecraft.util.math.ChunkPos;
 import net.minecraft.world.chunk.storage.RegionFileCache;
 
+// ensure the hyperbox dimensions only serialize the one chunk they have to reduce hard drive space per hyperbox 
 public class HyperboxRegionFileCache extends RegionFileCache
 {
 

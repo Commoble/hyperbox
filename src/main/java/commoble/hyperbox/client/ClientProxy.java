@@ -2,7 +2,6 @@ package commoble.hyperbox.client;
 
 import commoble.hyperbox.ConfigHelper;
 import commoble.hyperbox.Hyperbox;
-import commoble.hyperbox.ReflectionHelper;
 import commoble.hyperbox.RotationHelper;
 import commoble.hyperbox.blocks.HyperboxBlock;
 import it.unimi.dsi.fastutil.objects.Object2ObjectMap;
@@ -53,7 +52,7 @@ public class ClientProxy
 
 	static void afterClientSetup()
 	{
-		Object2ObjectMap<ResourceLocation, DimensionRenderInfo> renderInfoMap = ReflectionHelper.getStaticFieldOnce(DimensionRenderInfo.class, "field_239208_a_");
+		Object2ObjectMap<ResourceLocation, DimensionRenderInfo> renderInfoMap = DimensionRenderInfo.field_239208_a_;
 		renderInfoMap.put(Hyperbox.HYPERBOX_ID, new HyperboxRenderInfo());
 		
 		RenderTypeLookup.setRenderLayer(Hyperbox.INSTANCE.hyperboxBlock.get(), RenderType.getCutout());

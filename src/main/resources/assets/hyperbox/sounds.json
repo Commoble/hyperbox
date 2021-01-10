@@ -8,7 +8,9 @@
 			{
 				"type": "event",
 				"name": "minecraft:ambient.cave",
-				"weight": 20
+				"weight": 20,
+				"volume": 0.15,
+				"pitch": 0.5
 			}
 		],
 		"subtitle": "subtitles.ambient.cave"

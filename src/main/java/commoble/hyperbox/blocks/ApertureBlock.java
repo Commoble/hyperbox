@@ -3,9 +3,9 @@ package commoble.hyperbox.blocks;
 import java.util.Optional;
 
 import commoble.hyperbox.Hyperbox;
-import commoble.hyperbox.SpawnPointHelper;
 import commoble.hyperbox.dimension.DelayedTeleportData;
 import commoble.hyperbox.dimension.HyperboxWorldData;
+import commoble.hyperbox.dimension.SpawnPointHelper;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.entity.player.PlayerEntity;

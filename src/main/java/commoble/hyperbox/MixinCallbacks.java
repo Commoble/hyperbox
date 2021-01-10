@@ -13,9 +13,9 @@ import commoble.hyperbox.dimension.HyperboxChunkGenerator;
 import commoble.hyperbox.dimension.HyperboxDimension;
 import commoble.hyperbox.dimension.HyperboxDimension.IterationResult;
 import commoble.hyperbox.dimension.HyperboxRegionFileCache;
-import commoble.hyperbox.network.SoundPacket;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.player.ServerPlayerEntity;
+import net.minecraft.network.play.server.SPlaySoundEffectPacket;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.RegistryKey;
 import net.minecraft.util.SoundCategory;
@@ -24,7 +24,6 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 import net.minecraft.world.chunk.storage.RegionFileCache;
 import net.minecraft.world.server.ServerWorld;
-import net.minecraftforge.fml.network.PacketDistributor;
 
 public class MixinCallbacks
 {
@@ -84,16 +83,16 @@ public class MixinCallbacks
 				double radius = volume > 1F ? volume * 16D : 16D;
 				if (dx*dx + dy*dy + dz*dz < radius*radius)
 				{
-					double soundMultiplier = Math.pow(0.8D, iterations);
-					float scaledVolume = (float) (soundMultiplier * volume);
+					double soundMultiplier = Math.pow(0.5D, iterations);
+					float scaledVolume = (float) (soundMultiplier * volume * 0.5F);
 					float scaledPitch = (float) (soundMultiplier * pitch);
 					
 					double packetX = HyperboxChunkGenerator.CENTER.getX() + dx;
 					double packetY = HyperboxChunkGenerator.CENTER.getY() + dy;
 					double packetZ = HyperboxChunkGenerator.CENTER.getZ() + dz;
 					
-					SoundPacket packet = new SoundPacket(sound,category,scaledVolume,scaledPitch,false,0,true,packetX,packetY,packetZ,false);
-					Hyperbox.CHANNEL.send(PacketDistributor.PLAYER.with(()->serverPlayer), packet);
+					SPlaySoundEffectPacket packet = new SPlaySoundEffectPacket(sound,category,packetX,packetY,packetZ,scaledVolume,scaledPitch);
+					serverPlayer.connection.sendPacket(packet);
 				}
 				
 			}

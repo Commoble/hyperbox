@@ -16,9 +16,7 @@ import commoble.hyperbox.dimension.HyperboxChunkGenerator;
 import commoble.hyperbox.dimension.HyperboxDimension;
 import commoble.hyperbox.dimension.HyperboxWorldData;
 import commoble.hyperbox.dimension.ReturnPointCapability;
-import commoble.hyperbox.network.PacketType;
-import commoble.hyperbox.network.SoundPacket;
-import commoble.hyperbox.network.UpdateDimensionsPacket;
+import commoble.hyperbox.dimension.UpdateDimensionsPacket;
 import net.minecraft.block.AbstractBlock;
 import net.minecraft.block.Block;
 import net.minecraft.block.Blocks;
@@ -117,7 +115,6 @@ public class Hyperbox
 		forgeBus.addGenericListener(Entity.class, this::onAttachEntityCapabilities);
 
 		int packetID = 0;
-		PacketType.register(packetID++, CHANNEL, SoundPacket.CODEC, SoundPacket.INVALID);
 		PacketType.register(packetID++, CHANNEL, UpdateDimensionsPacket.CODEC, UpdateDimensionsPacket.INVALID);
 		
 		// subscribe client-build event handlers
