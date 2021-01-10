@@ -1,4 +1,4 @@
-package commoble.hyperbox;
+package commoble.hyperbox.dimension;
 
 import java.util.HashSet;
 import java.util.LinkedList;

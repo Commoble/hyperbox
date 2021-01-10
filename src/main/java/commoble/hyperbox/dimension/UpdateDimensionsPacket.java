@@ -1,4 +1,4 @@
-package commoble.hyperbox.network;
+package commoble.hyperbox.dimension;
 
 import java.util.function.Consumer;
 
