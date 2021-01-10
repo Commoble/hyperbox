@@ -30,15 +30,6 @@ import net.minecraft.world.server.ServerWorld;
 // the blocks on the inside of the storage dimension that lead outside
 public class ApertureBlock extends Block
 {
-//	// shapes by Direction index (down, up, north, south, west, east)
-//	public static final VoxelShape[] SHAPES_DUNSWE = {
-//		Block.makeCuboidShape(0, 0, 0, 16, 1, 16),
-//		Block.makeCuboidShape(0, 15, 0, 16, 16, 16),
-//		Block.makeCuboidShape(0, 0, 0, 16, 16, 1),
-//		Block.makeCuboidShape(0, 0, 15, 16, 16, 16),
-//		Block.makeCuboidShape(0, 0, 0, 1, 16, 16),
-//		Block.makeCuboidShape(16, 0, 0, 15, 16, 16)
-//	};
 	// direction of facing of aperture
 	public static final DirectionProperty FACING = BlockStateProperties.FACING;
 

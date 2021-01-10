@@ -29,6 +29,8 @@ import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.ActionResultType;
 import net.minecraft.util.Direction;
 import net.minecraft.util.Hand;
+import net.minecraft.util.Mirror;
+import net.minecraft.util.Rotation;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.BlockRayTraceResult;
 import net.minecraft.util.math.vector.Vector3d;
@@ -314,5 +316,59 @@ public class HyperboxBlock extends Block
 	public static boolean getIsNormalCube(BlockState state, IBlockReader world, BlockPos pos)
 	{
 		return false;
+	}
+	
+	/**
+	 * Returns the blockstate with the given rotation from the passed blockstate. If
+	 * inapplicable, returns the passed blockstate.
+	 * 
+	 * @deprecated call via {@link BlockState#withRotation(Rotation)} whenever
+	 *             possible. Implementing/overriding is fine.
+	 */
+	@Override
+	@Deprecated
+	public BlockState rotate(BlockState state, Rotation rotation)
+	{
+		if (state.hasProperty(ATTACHMENT_DIRECTION) && state.hasProperty(ROTATION))
+		{
+			Direction attachmentDirection = state.get(ATTACHMENT_DIRECTION);
+			int rotationIndex = state.get(ROTATION);
+
+			Direction newAttachmentDirection = rotation.rotate(attachmentDirection);
+			int newRotationIndex = RotationHelper.getRotatedRotation(attachmentDirection, rotationIndex, rotation);
+
+			return state.with(ATTACHMENT_DIRECTION, newAttachmentDirection).with(ROTATION, newRotationIndex);
+		}
+		else
+		{
+			return state;
+		}
+	}
+
+	/**
+	 * Returns the blockstate with the given mirror of the passed blockstate. If
+	 * inapplicable, returns the passed blockstate.
+	 * 
+	 * @deprecated call via {@link BlockState#withMirror(Mirror)} whenever
+	 *             possible. Implementing/overriding is fine.
+	 */
+	@Override
+	@Deprecated
+	public BlockState mirror(BlockState state, Mirror mirror)
+	{
+		if (state.hasProperty(ATTACHMENT_DIRECTION) && state.hasProperty(ROTATION))
+		{
+			Direction attachmentDirection = state.get(ATTACHMENT_DIRECTION);
+			int rotationIndex = state.get(ROTATION);
+
+			Direction newAttachmentDirection = mirror.mirror(attachmentDirection);
+			int newRotationIndex = RotationHelper.getMirroredRotation(attachmentDirection, rotationIndex, mirror);
+
+			return state.with(ATTACHMENT_DIRECTION, newAttachmentDirection).with(ROTATION, newRotationIndex);
+		}
+		else
+		{
+			return state;
+		}
 	}
 }
