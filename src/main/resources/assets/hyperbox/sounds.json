@@ -1,0 +1,16 @@
+{
+	"ambience": 
+	{
+		"sounds": 
+		[
+			"hyperbox:thud",
+			"hyperbox:creak",
+			{
+				"type": "event",
+				"name": "minecraft:ambient.cave",
+				"weight": 20
+			}
+		],
+		"subtitle": "subtitles.ambient.cave"
+	}
+}

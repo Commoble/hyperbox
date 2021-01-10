@@ -7,7 +7,21 @@
 		"fog_color": 0,
 		"sky_color": 0,
 		"water_color": 4159204,
-		"water_fog_color": 329011
+		"water_fog_color": 329011,
+		"mood_sound":
+		{
+			"sound": "hyperbox:ambience",
+			"tick_delay": 200,
+			"block_search_extent": 4,
+			"offset": 2
+		},
+		"music":
+		{
+			"sound": "hyperbox:ambience",
+			"min_delay": 48000,
+			"max_delay": 96000,
+			"replace_current_music": true
+		}
 	},
 	"precipitation": "none",
 	"temperature": 0.8,
