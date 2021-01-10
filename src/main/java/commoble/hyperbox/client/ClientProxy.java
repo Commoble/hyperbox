@@ -26,6 +26,7 @@ import net.minecraft.world.World;
 import net.minecraftforge.client.event.ColorHandlerEvent;
 import net.minecraftforge.client.event.DrawHighlightEvent;
 import net.minecraftforge.eventbus.api.IEventBus;
+import net.minecraftforge.fml.client.registry.ClientRegistry;
 import net.minecraftforge.fml.config.ModConfig;
 import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
 
@@ -46,6 +47,7 @@ public class ClientProxy
 
 	static void onClientSetup(FMLClientSetupEvent event)
 	{
+		ClientRegistry.bindTileEntityRenderer(Hyperbox.INSTANCE.hyperboxTileEntityType.get(), HyperboxTileEntityRenderer::new);
 		event.enqueueWork(ClientProxy::afterClientSetup);
 	}
 

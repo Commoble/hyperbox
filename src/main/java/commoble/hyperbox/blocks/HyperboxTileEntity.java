@@ -280,10 +280,6 @@ public class HyperboxTileEntity extends TileEntity implements INameable
 		{
 			compound.putString(WORLD_KEY, key.getLocation().toString());
 		});
-		this.name.ifPresent(name ->
-		{
-			compound.putString(NAME, ITextComponent.Serializer.toJson(name));
-		});
 		this.writeClientSensitiveData(compound);
 		return compound;
 	}
@@ -300,14 +296,15 @@ public class HyperboxTileEntity extends TileEntity implements INameable
 		this.worldKey = nbt.contains(WORLD_KEY)
 			? Optional.of(RegistryKey.getOrCreateKey(Registry.WORLD_KEY, new ResourceLocation(nbt.getString(WORLD_KEY))))
 			: Optional.empty();
-		this.name = nbt.contains(NAME)
-			? Optional.ofNullable(ITextComponent.Serializer.getComponentFromJson(nbt.getString(NAME)))
-			: Optional.empty();
 		this.readClientSensitiveData(nbt);
 	}
 	
 	public CompoundNBT writeClientSensitiveData(CompoundNBT nbt)
 	{
+		this.name.ifPresent(name ->
+		{
+			nbt.putString(NAME, ITextComponent.Serializer.toJson(name));
+		});
 		if (this.color != HyperboxBlockItem.DEFAULT_COLOR)
 		{
 			nbt.putInt(COLOR, this.color);
@@ -319,6 +316,9 @@ public class HyperboxTileEntity extends TileEntity implements INameable
 	
 	public void readClientSensitiveData(CompoundNBT nbt)
 	{
+		this.name = nbt.contains(NAME)
+			? Optional.ofNullable(ITextComponent.Serializer.getComponentFromJson(nbt.getString(NAME)))
+			: Optional.empty();
 		this.color = nbt.contains(COLOR)
 			? nbt.getInt(COLOR)
 			: HyperboxBlockItem.DEFAULT_COLOR;
