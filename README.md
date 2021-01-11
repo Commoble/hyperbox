@@ -3,7 +3,7 @@ Hyperbox is a minecraft forge mod that adds a box that's bigger on the inside th
 Built jars are available here:
 * https://www.curseforge.com/minecraft/mc-mods/hyperbox
 
-A client config is available in <your minecraft root folder>/config/hyperbox-client.toml -- this config file allows several options to be set by the client player. This config file will be generated the first time minecraft runs with this mod installed; the default config file is as follows:
+A client config is available in `<your minecraft root folder>/config/hyperbox-client.toml` -- this config file allows several options to be set by the client player. This config file will be generated the first time minecraft runs with this mod installed; the default config file is as follows:
 
 ```toml
 
@@ -24,7 +24,7 @@ A client config is available in <your minecraft root folder>/config/hyperbox-cli
 	nameplate_render_distance = -1.0
 ```
 
-A server config is also available in <your save folder>/serverconfig/hyperbox-server.toml; each save folder has its own serverconfig, and these files are generated the first time a server starts or a singleplayer save is created. The default serverconfig file is as follows:
+A server config is also available in `<your save folder>/serverconfig/hyperbox-server.toml`; each save folder has its own serverconfig, and these files are generated the first time a server starts or a singleplayer save is created. The default serverconfig file is as follows:
 
 ```
 [world_management]
