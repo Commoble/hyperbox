@@ -27,6 +27,7 @@ import net.minecraft.world.storage.IServerConfiguration;
 import net.minecraft.world.storage.SaveFormat.LevelSave;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.world.WorldEvent;
+import net.minecraftforge.fml.network.PacketDistributor;
 
 public class DimensionHelper
 {	
@@ -161,7 +162,7 @@ public class DimensionHelper
 		// fire world load event
 		MinecraftForge.EVENT_BUS.post(new WorldEvent.Load(newWorld)); // event isn't cancellable
 		
-		Hyperbox.CHANNEL.sendToServer(new UpdateDimensionsPacket(worldKey, true));
+		Hyperbox.CHANNEL.send(PacketDistributor.ALL.noArg(), new UpdateDimensionsPacket(worldKey, true));
 		
 		return newWorld;
 	}
