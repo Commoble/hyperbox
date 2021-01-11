@@ -34,14 +34,6 @@ public class MixinCallbacks
 			: viewDistanceIn;
 	}
 	
-//	public static void onChunkHolderCannotGenerateChunks(Supplier<ServerWorld> worldSupplier, CallbackInfoReturnable<Boolean> info)
-//	{
-////		if (HyperboxDimension.isHyperboxDimension(worldSupplier.get().getDimensionKey()))
-////		{
-////			info.setReturnValue(true);
-////		}
-//	}
-	
 	public static void onIOWorkerConstruction(File file, boolean sync, Consumer<RegionFileCache> cacheConsumer)
 	{
 		if (file.getPath().contains("generated_hyperbox"))

@@ -149,22 +149,47 @@ public class Hyperbox
 	void onWorldTick(WorldTickEvent event)
 	{
 		World world = event.world;
-		if (event.phase == TickEvent.Phase.END && world instanceof ServerWorld)
+		if (world instanceof ServerWorld)
 		{
-			ServerWorld serverWorld = (ServerWorld)world;
-			MinecraftServer server = serverWorld.getServer();
-			// cleanup unused hyperboxes
-			
-			// unload dimensions first so we don't teleport players to worlds we're about to unload
-			RegistryKey<World> key = serverWorld.getDimensionKey();
-			if (shouldUnloadDimension(server, key))
+			if (event.phase == TickEvent.Phase.END)
 			{
-				DimensionRemover.unregisterDimensions(server, ImmutableSet.of(key));
+				this.onPreServerWorldTick((ServerWorld)world);
 			}
-			
-			// handle scheduled teleports
-			DelayedTeleportData.tick(serverWorld);
+			else // phase == END
+			{
+				this.onPostServerWorldTick((ServerWorld)world);
+			}
 		}
+	}
+	
+	void onPreServerWorldTick(ServerWorld serverWorld)
+	{
+		RegistryKey<World> key = serverWorld.getDimensionKey();
+		if (this.serverConfig.autoForceHyperboxChunks.get() && HyperboxDimension.isHyperboxDimension(key))
+		{
+			boolean isChunkForced = serverWorld.getForcedChunks().contains(HyperboxChunkGenerator.CHUNKID);
+			boolean shouldChunkBeForced = shouldHyperboxChunkBeForced(serverWorld);
+			if (isChunkForced != shouldChunkBeForced)
+			{
+				serverWorld.forceChunk(HyperboxChunkGenerator.CHUNKPOS.x, HyperboxChunkGenerator.CHUNKPOS.z, shouldChunkBeForced);
+			}
+		}
+	}
+	
+	void onPostServerWorldTick(ServerWorld serverWorld)
+	{
+		MinecraftServer server = serverWorld.getServer();
+		// cleanup unused hyperboxes
+		
+		// unload dimensions first so we don't teleport players to worlds we're about to unload
+		RegistryKey<World> key = serverWorld.getDimensionKey();
+		if (shouldUnloadDimension(server, key))
+		{
+			DimensionRemover.unregisterDimensions(server, ImmutableSet.of(key));
+		}
+		
+		// handle scheduled teleports
+		DelayedTeleportData.tick(serverWorld);
 	}
 	
 	public static boolean shouldUnloadDimension(MinecraftServer server, RegistryKey<World> key)
@@ -176,6 +201,11 @@ public class Hyperbox
 		// if the dimension doesn't exist, don't unload it
 		@Nullable ServerWorld targetWorld = server.getWorld(key);
 		if (targetWorld == null)
+			return false;
+		
+		// only run this once a second as the getTileEntity call flags the parent chunk to be kept loaded another tick
+		// which prevents the hyperbox-chunk-unloader from running
+		if ((targetWorld.getGameTime() + targetWorld.hashCode()) % 20 != 0)
 			return false;
 		
 		HyperboxWorldData hyperboxData = HyperboxWorldData.getOrCreate(targetWorld);
@@ -204,6 +234,20 @@ public class Hyperbox
 			.map(childKey -> !childKey.equals(key))
 			// if the te doesn't point anywhere, return true and unload
 			.orElse(true);
+	}
+
+	@SuppressWarnings("deprecation")
+	static boolean shouldHyperboxChunkBeForced(ServerWorld hyperboxWorld)
+	{
+		MinecraftServer server = hyperboxWorld.getServer();
+		HyperboxWorldData data = HyperboxWorldData.getOrCreate(hyperboxWorld);
+		RegistryKey<World> parentKey = data.getParentWorld();
+		ServerWorld parentWorld = server.getWorld(parentKey);
+		if (parentWorld == null)
+			return false;
+		
+		BlockPos parentPos = data.getParentPos();	
+		return parentWorld.isBlockLoaded(parentPos);
 	}
 	
 	// helper methods for registering things

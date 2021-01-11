@@ -53,23 +53,6 @@ public class HyperboxTileEntity extends TileEntity implements INameable
 		super(Hyperbox.INSTANCE.hyperboxTileEntityType.get());
 	}
 	
-	// when a chunk is loaded, setWorldAndPos is called after reading nbt data
-	// when a block is placed, setWorldAndPos is called *before* reading nbt data
-	// so we want to handle forceloading of child chunk here,
-	// but only when the parent chunk becomes loaded
-	// and then we'll handle forceloading on-block-place in the block class
-	@Override
-	public void setWorldAndPos(World world, BlockPos pos)
-	{
-		super.setWorldAndPos(world, pos);
-		
-		if (this.world instanceof ServerWorld)
-		{
-			this.worldKey.map(key -> this.getChildWorld(((ServerWorld)world).getServer(), key))
-				.ifPresent(childWorld -> childWorld.forceChunk(HyperboxChunkGenerator.CHUNKPOS.x, HyperboxChunkGenerator.CHUNKPOS.z, true));
-		}
-	}
-	
 	public void afterBlockPlaced()
 	{
 		if (this.world instanceof ServerWorld)
@@ -78,7 +61,6 @@ public class HyperboxTileEntity extends TileEntity implements INameable
 			MinecraftServer server = thisServerWorld.getServer();
 			ServerWorld childWorld = this.getOrCreateWorld(server);
 			BlockState thisState = this.getBlockState();
-			childWorld.forceChunk(HyperboxChunkGenerator.CHUNKPOS.x, HyperboxChunkGenerator.CHUNKPOS.z, true);
 			Direction[] dirs = Direction.values();
 			for (Direction dir : dirs)
 			{
@@ -95,43 +77,6 @@ public class HyperboxTileEntity extends TileEntity implements INameable
 			}
 			
 		}
-	}
-
-	// un-forceload the child world chunk when the parent block is removed
-	@Override
-	public void remove()
-	{
-		if (this.world instanceof ServerWorld)
-		{
-			ServerWorld thisWorld = (ServerWorld)this.world;
-			MinecraftServer server = thisWorld.getServer();
-			this.getWorldKey().ifPresent(childKey ->
-			{
-				ServerWorld childWorld = server.getWorld(childKey);
-				if (childWorld != null)
-				{
-					
-					HyperboxWorldData data = HyperboxWorldData.getOrCreate(childWorld);
-					if (data.getParentWorld().equals(this.world.getDimensionKey()) && data.getParentPos().equals(this.pos))
-					{
-						childWorld.forceChunk(HyperboxChunkGenerator.CHUNKPOS.x, HyperboxChunkGenerator.CHUNKPOS.z, false);
-//						DelayedTeleportData.getOrCreate(childWorld).scheduleDimensionUnload(childKey);
-					}
-				}
-			});
-		}
-		super.remove();
-	}
-	
-	// un-forceload the child world chunk when the parent chunk is unloaded
-	@Override
-	public void onChunkUnloaded()
-	{
-		if (this.world instanceof ServerWorld)
-		{
-			this.getOrCreateWorld(((ServerWorld)this.world).getServer()).forceChunk(HyperboxChunkGenerator.CHUNKPOS.x, HyperboxChunkGenerator.CHUNKPOS.z, false);
-		}
-		super.onChunkUnloaded();
 	}
 	
 	public void setColor(int color)

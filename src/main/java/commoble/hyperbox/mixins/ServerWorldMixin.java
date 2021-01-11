@@ -33,6 +33,7 @@ public abstract class ServerWorldMixin extends World
 	// inject just before the method gets the server list
 	// in the original method, a forge event is fired, and the arguments' values are potentially reassigned based on data from that event
 	// because the new values are assigned to the argument fields (rather than new local variables), we don't need to capture locals, we just need the arguments
+	// (the forge event doesn't have positional context so we can't use the forge event at this time)
 	@Inject(method="playSound", at=@At(value="INVOKE", target="net/minecraft/server/MinecraftServer.getPlayerList ()Lnet/minecraft/server/management/PlayerList;"))
 	void playSoundInjection(@Nullable PlayerEntity player, double x, double y, double z, SoundEvent sound, SoundCategory category, float volume, float pitch, CallbackInfo info)
 	{

@@ -32,10 +32,4 @@ public abstract class ChunkManagerMixin implements Supplier<ServerWorld>
 	{
 		return MixinCallbacks.modifyChunkManagerViewDistance(this, clampedViewDistance);
 	}
-	
-//	@Inject(method ="cannotGenerateChunks", at = @At("HEAD"), cancellable=true)
-//	public void onCannotGenerateChunks(ServerPlayerEntity player, CallbackInfoReturnable<Boolean> info)
-//	{
-//		MixinCallbacks.onChunkHolderCannotGenerateChunks(this, info);
-//	}
 }
