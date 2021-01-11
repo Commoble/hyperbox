@@ -60,6 +60,13 @@ public class HyperboxTileEntity extends TileEntity implements INameable
 			ServerWorld thisServerWorld = (ServerWorld)this.world;
 			MinecraftServer server = thisServerWorld.getServer();
 			ServerWorld childWorld = this.getOrCreateWorld(server);
+			if (Hyperbox.INSTANCE.serverConfig.autoForceHyperboxChunks.get())
+			{
+				childWorld.getChunk(HyperboxChunkGenerator.CHUNKPOS.x, HyperboxChunkGenerator.CHUNKPOS.z);
+				childWorld.forceChunk(HyperboxChunkGenerator.CHUNKPOS.x, HyperboxChunkGenerator.CHUNKPOS.z, true);
+				// we have to do this to make the child world's chunk start ticking
+				childWorld.getChunkProvider().forceChunk(HyperboxChunkGenerator.CHUNKPOS, true);
+			}
 			BlockState thisState = this.getBlockState();
 			Direction[] dirs = Direction.values();
 			for (Direction dir : dirs)
