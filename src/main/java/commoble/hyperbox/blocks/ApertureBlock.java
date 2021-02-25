@@ -128,6 +128,7 @@ public class ApertureBlock extends Block
 			int strongPower = neighborState.getStrongPower(world, neighborPos, directionToNeighbor);
 			getHyperboxTileEntity(serverWorld,thisPos).ifPresent(te -> {
 				te.updatePower(weakPower, strongPower, directionToNeighbor.getOpposite());
+				te.markDirty(); // invokes onNeighborChanged on adjacent blocks, so we can propagate neighbor changes, update capabilities, etc
 			});
 		}
 		

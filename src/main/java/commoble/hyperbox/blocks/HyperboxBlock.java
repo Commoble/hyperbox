@@ -239,6 +239,7 @@ public class HyperboxBlock extends Block
 				ServerWorld serverWorld = (ServerWorld)world;
 				this.getApertureTileEntityForFace(thisState, serverWorld,thisPos,directionToNeighbor).ifPresent(te -> {
 					te.updatePower(serverWorld, neighborPos, neighborState, directionToNeighbor);
+					te.markDirty(); // invokes onNeighborChanged on adjacent blocks, so we can propagate neighbor changes, update capabilities, etc
 				});
 			}
 		}
