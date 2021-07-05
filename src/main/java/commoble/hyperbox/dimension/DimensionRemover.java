@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 
 import org.apache.logging.log4j.LogManager;
@@ -119,13 +120,13 @@ public class DimensionRemover
 		
 		ObjectList<Dimension> oldList = oldRegistry.entryList;
 		BiMap<RegistryKey<Dimension>, Dimension> oldMap = oldRegistry.keyToObjectMap;
-		BiMap<Dimension, RegistryKey<Dimension>> oldInvertedMap = oldMap.inverse();
 		Map<Dimension, Lifecycle> oldLifecycles = oldRegistry.objectToLifecycleMap;
 		
-		for (Dimension dimension : oldList)
+		for (Entry<RegistryKey<Dimension>, Dimension> entry : oldMap.entrySet())
 		{
-			RegistryKey<Dimension> key = oldInvertedMap.get(dimension);
-			if (!keysToRemove.contains(key))
+			RegistryKey<Dimension> key = entry.getKey();
+			Dimension dimension = entry.getValue();
+			if (key != null && dimension != null && !keysToRemove.contains(key)) // these shouldn't be null but we got an NPE here regardless
 			{
 				newRegistry.register(key, dimension, oldLifecycles.get(dimension));
 			}
