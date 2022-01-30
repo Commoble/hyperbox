@@ -1,16 +1,16 @@
 package commoble.hyperbox;
 
-import commoble.hyperbox.ConfigHelper.ConfigValueListener;
 import net.minecraftforge.common.ForgeConfigSpec;
+import net.minecraftforge.common.ForgeConfigSpec.ConfigValue;
 
-public class ServerConfig
+public class CommonConfig
 {
-	public final ConfigValueListener<Boolean> autoForceHyperboxChunks;
+	public final ConfigValue<Boolean> autoForceHyperboxChunks;
 	
-	public ServerConfig(ForgeConfigSpec.Builder builder, ConfigHelper.Subscriber subscriber)
+	public CommonConfig(ForgeConfigSpec.Builder builder)
 	{
 		builder.push("world_management");
-		this.autoForceHyperboxChunks = subscriber.subscribe(builder
+		this.autoForceHyperboxChunks = builder
 			.comment(
 				"Enable automatic forceloading of hyperbox chunks.",
 				"While this is enabled, the primary chunks of hyperbox worlds will be kept loaded while the",
@@ -21,8 +21,7 @@ public class ServerConfig
 				"other means.",
 				"Be aware that if this option is changed from true to false while any hyperbox chunks are currently",
 				"forceloaded, they will continue to be forceloaded until those chunks are manually un-forceloaded.")
-			.define("auto_force_hyperbox_chunks", true)
-			);
+			.define("auto_force_hyperbox_chunks", true);
 		builder.pop();
 	}
 }

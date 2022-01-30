@@ -7,12 +7,12 @@ import java.util.function.Supplier;
 
 import com.mojang.serialization.Codec;
 
-import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.nbt.NBTDynamicOps;
-import net.minecraft.network.PacketBuffer;
-import net.minecraftforge.fml.network.NetworkEvent;
-import net.minecraftforge.fml.network.NetworkEvent.Context;
-import net.minecraftforge.fml.network.simple.SimpleChannel;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.NbtOps;
+import net.minecraft.network.FriendlyByteBuf;
+import net.minecraftforge.network.NetworkEvent;
+import net.minecraftforge.network.NetworkEvent.Context;
+import net.minecraftforge.network.simple.SimpleChannel;
 
 public class PacketType
 {
@@ -30,10 +30,10 @@ public class PacketType
 	public static <PACKET extends Consumer<NetworkEvent.Context>> void register(int id, SimpleChannel channel, Codec<PACKET> codec, PACKET defaultPacket)
 	{
 
-		final BiConsumer<PACKET,PacketBuffer> encoder = (packet,buffer) -> codec.encodeStart(NBTDynamicOps.INSTANCE, packet)
+		final BiConsumer<PACKET,FriendlyByteBuf> encoder = (packet,buffer) -> codec.encodeStart(NbtOps.INSTANCE, packet)
 			.result()
-			.ifPresent(nbt -> buffer.writeCompoundTag((CompoundNBT)nbt));
-		final Function<PacketBuffer,PACKET> decoder = buffer -> codec.parse(NBTDynamicOps.INSTANCE, buffer.readCompoundTag())
+			.ifPresent(nbt -> buffer.writeNbt((CompoundTag)nbt));
+		final Function<FriendlyByteBuf,PACKET> decoder = buffer -> codec.parse(NbtOps.INSTANCE, buffer.readNbt())
 			.result()
 			.orElse(defaultPacket);	// we should return a packet without throwing an error here if we don't want logspam
 		final BiConsumer<PACKET,Supplier<Context>> handler = (packet,context) -> {
@@ -41,6 +41,7 @@ public class PacketType
 			context.get().setPacketHandled(true);
 		};
 		
+		@SuppressWarnings("unchecked")
 		final Class<PACKET> packetClass = (Class<PACKET>) (defaultPacket.getClass());
 		
 		channel.registerMessage(id, packetClass, encoder, decoder, handler);

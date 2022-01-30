@@ -1,10 +1,10 @@
 package commoble.hyperbox;
 
-import net.minecraft.util.Direction;
-import net.minecraft.util.Direction.Axis;
-import net.minecraft.util.Mirror;
-import net.minecraft.util.Rotation;
-import net.minecraft.util.math.vector.Vector3d;
+import net.minecraft.core.Direction;
+import net.minecraft.core.Direction.Axis;
+import net.minecraft.world.level.block.Mirror;
+import net.minecraft.world.level.block.Rotation;
+import net.minecraft.world.phys.Vec3;
 
 public class RotationHelper
 {
@@ -161,7 +161,7 @@ public class RotationHelper
 	
 	public static int getRotationIndexForHorizontal(Direction horizontalDirection)
 	{
-		return ROTATION_INDEX_BY_HORIZONTAL_DIRECTION_INDEX[horizontalDirection.getHorizontalIndex()];
+		return ROTATION_INDEX_BY_HORIZONTAL_DIRECTION_INDEX[horizontalDirection.get2DDataValue()];
 	}
 	
 	public static Direction getOutputDirection(Direction attachmentDirection, int rotationIndex)
@@ -227,7 +227,7 @@ public class RotationHelper
 		return 0;
 	}
 	
-	public static Direction getOutputDirectionFromRelativeHitVec(Vector3d hitVec, Direction directionTowardBlockAttachedTo)
+	public static Direction getOutputDirectionFromRelativeHitVec(Vec3 hitVec, Direction directionTowardBlockAttachedTo)
 	{
 		// we have the relative hit vector, where 0,0,0 is the bottom-left corner of the cube we are placing into
 		// and 1,1,1 is the top-right
@@ -243,6 +243,6 @@ public class RotationHelper
 		float y = (float) (axis == Axis.Y ? 0F : hitVec.y*2 - 1);
 		float z = (float) (axis == Axis.Z ? 0F : hitVec.z*2 - 1);
 		
-		return Direction.getFacingFromVector(x, y, z);
+		return Direction.getNearest(x, y, z);
 	}
 }

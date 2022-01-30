@@ -7,32 +7,32 @@ import javax.annotation.Nullable;
 
 import commoble.hyperbox.Hyperbox;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.util.RegistryKey;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.registry.Registry;
-import net.minecraft.world.Dimension;
-import net.minecraft.world.DimensionType;
-import net.minecraft.world.World;
-import net.minecraft.world.server.ServerWorld;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Registry;
+import net.minecraft.world.level.dimension.LevelStem;
+import net.minecraft.world.level.dimension.DimensionType;
+import net.minecraft.world.level.Level;
+import net.minecraft.server.level.ServerLevel;
 
 public class HyperboxDimension
 {	
-	public static Dimension createDimension(MinecraftServer server, RegistryKey<Dimension> key)
+	public static LevelStem createDimension(MinecraftServer server)
 	{
-		return new Dimension(() -> getDimensionType(server), new HyperboxChunkGenerator(server));
+		return new LevelStem(() -> getDimensionType(server), new HyperboxChunkGenerator(server));
 	}
 	
 	public static DimensionType getDimensionType(MinecraftServer server)
 	{
-		return server.func_244267_aX() // get dynamic registries
-			.getRegistry(Registry.DIMENSION_TYPE_KEY)
+		return server.registryAccess() // get dynamic registries
+			.registryOrThrow(Registry.DIMENSION_TYPE_REGISTRY)
 			.getOrThrow(Hyperbox.DIMENSION_TYPE_KEY);
 	}
 	
-	public static boolean isHyperboxDimension(RegistryKey<World> key)
-	{
-		return key.getLocation().getNamespace().equals(Hyperbox.MODID);
-	}
+//	public static boolean isHyperboxDimension(ResourceKey<Level> key)
+//	{
+//		return key.location().getNamespace().equals(Hyperbox.MODID);
+//	}
 	
 	/**
 	 * Returns whether a given world is reachable from another given world using hyperbox parenting.
@@ -50,7 +50,7 @@ public class HyperboxDimension
 	 * @return A result including the target world's hyperbox position and the parenting distance between the two worlds, or -1 if the target is not reachable.
 	 * The result's position will be null if the iteration depth is not positive.
 	 */
-	public static IterationResult getHyperboxIterationDepth(MinecraftServer server, ServerWorld targetWorld, ServerWorld hyperboxWorld)
+	public static IterationResult getHyperboxIterationDepth(MinecraftServer server, ServerLevel targetWorld, ServerLevel hyperboxWorld)
 	{
 		if (hyperboxWorld == null || targetWorld == null)
 			return IterationResult.FAILURE;
@@ -60,17 +60,18 @@ public class HyperboxDimension
 			return IterationResult.NONE;
 		}
 		
-		Set<RegistryKey<World>> foundKeys = new HashSet<>();
+		Set<ResourceKey<Level>> foundKeys = new HashSet<>();
 		
-		ServerWorld nextWorld = hyperboxWorld;
-		RegistryKey<World> nextKey = nextWorld.getDimensionKey();
+		ServerLevel nextWorld = hyperboxWorld;
+		ResourceKey<Level> nextKey = nextWorld.dimension();
 		int iterations = 0;
-		while (isHyperboxDimension(nextKey) && !foundKeys.contains(nextKey))
+		DimensionType hyperboxDimensionType = getDimensionType(server);
+		while (nextWorld.dimensionType() == hyperboxDimensionType && !foundKeys.contains(nextKey))
 		{
 			foundKeys.add(nextKey);
 			HyperboxWorldData data = HyperboxWorldData.getOrCreate(nextWorld);
-			RegistryKey<World> parentKey = data.getParentWorld();
-			ServerWorld parentWorld = server.getWorld(parentKey);
+			ResourceKey<Level> parentKey = data.getParentWorld();
+			ServerLevel parentWorld = server.getLevel(parentKey);
 			iterations++;
 			if (parentWorld == targetWorld)
 				return new IterationResult(iterations, data.getParentPos());
@@ -83,18 +84,9 @@ public class HyperboxDimension
 		return IterationResult.FAILURE;
 	}
 	
-	public static class IterationResult
+	public static record IterationResult(int iterations, @Nullable BlockPos parentPos)
 	{
 		public static final IterationResult FAILURE = new IterationResult(-1, null);
 		public static final IterationResult NONE = new IterationResult(0, null);
-		
-		public final int iterations;
-		public final @Nullable BlockPos parentPos;
-		
-		public IterationResult(int iterations, @Nullable BlockPos pos)
-		{
-			this.iterations = iterations;
-			this.parentPos = pos;
-		}
 	}
 }

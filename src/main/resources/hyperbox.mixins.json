@@ -1,13 +1,13 @@
 {
 	"required": true,
 	"package": "commoble.hyperbox.mixins",
-	"compatibilityLevel": "JAVA_8",
+	"compatibilityLevel": "JAVA_17",
 	"refmap": "hyperbox.refmap.json",
 	"mixins": 
 	[
-		"ChunkManagerMixin",
+		"ChunkMapMixin",
 		"IOWorkerMixin",
-		"ServerWorldMixin"
+		"ServerLevelMixin"
 	],
 	"client": 
 	[

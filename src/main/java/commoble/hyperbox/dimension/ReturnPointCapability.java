@@ -9,65 +9,63 @@ import com.mojang.serialization.codecs.RecordCodecBuilder;
 
 import commoble.hyperbox.Hyperbox;
 import commoble.hyperbox.Names;
-import net.minecraft.entity.player.ServerPlayerEntity;
-import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.nbt.INBT;
-import net.minecraft.nbt.NBTDynamicOps;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.core.Registry;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.NbtOps;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.util.Direction;
-import net.minecraft.util.IWorldPosCallable;
-import net.minecraft.util.RegistryKey;
-import net.minecraft.util.ResourceLocation;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.registry.Registry;
-import net.minecraft.world.World;
-import net.minecraft.world.server.ServerWorld;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.inventory.ContainerLevelAccess;
+import net.minecraft.world.level.Level;
 import net.minecraftforge.common.capabilities.Capability;
-import net.minecraftforge.common.capabilities.CapabilityInject;
-import net.minecraftforge.common.capabilities.ICapabilityProvider;
+import net.minecraftforge.common.capabilities.CapabilityManager;
+import net.minecraftforge.common.capabilities.CapabilityToken;
+import net.minecraftforge.common.capabilities.ICapabilitySerializable;
 import net.minecraftforge.common.util.LazyOptional;
 
-public class ReturnPointCapability implements Capability.IStorage<ReturnPointCapability>, ICapabilityProvider
+public class ReturnPointCapability implements ICapabilitySerializable<CompoundTag>
 {
-	// initialized by forge
-	@CapabilityInject(ReturnPointCapability.class)
-	public static final Capability<ReturnPointCapability> INSTANCE = null; 
+	public static final Capability<ReturnPointCapability> INSTANCE = CapabilityManager.get(new CapabilityToken<>(){});
 	public static final ResourceLocation ID = new ResourceLocation(Hyperbox.MODID, Names.RETURN_POINT);
 	
 	private final LazyOptional<ReturnPointCapability> holder = LazyOptional.of(() -> this);
 	
 	public Optional<Data> data = Optional.empty();
 	
-	public void setReturnPoint(RegistryKey<World> key, BlockPos pos)
+	public void setReturnPoint(ResourceKey<Level> key, BlockPos pos)
 	{
 		this.data = Optional.of(new Data(key, pos));
 	}
 	
-	public static IWorldPosCallable getReturnPoint(ServerPlayerEntity player)
+	public static ContainerLevelAccess getReturnPoint(ServerPlayer player)
 	{
 		MinecraftServer server = player.getServer();
 		return player.getCapability(INSTANCE)
 			.resolve()
 			.flatMap(cap -> cap.data.flatMap(data -> data.getWorldPosCallable(cap, server)))
 			.orElseGet(() -> {
-				ServerWorld targetWorld = server.getWorld(player.func_241141_L_()); // get respawn world
+				ServerLevel targetWorld = server.getLevel(player.getRespawnDimension()); // get respawn world
 				if (targetWorld == null)
-					targetWorld = server.getWorld(World.OVERWORLD);
+					targetWorld = server.getLevel(Level.OVERWORLD);
 				
-				return IWorldPosCallable.of(targetWorld, targetWorld.getSpawnPoint());
+				return ContainerLevelAccess.create(targetWorld, targetWorld.getSharedSpawnPos());
 			});
 	}
 
 	@Override
-	public INBT writeNBT(Capability<ReturnPointCapability> capability, ReturnPointCapability instance, Direction side)
+	public CompoundTag serializeNBT()
 	{
-		return this.data.flatMap(d -> Data.CODEC.encodeStart(NBTDynamicOps.INSTANCE, d).result()).orElseGet(CompoundNBT::new);
+		return (CompoundTag) this.data.flatMap(d -> Data.CODEC.encodeStart(NbtOps.INSTANCE, d).result()).orElseGet(CompoundTag::new);
 	}
 
 	@Override
-	public void readNBT(Capability<ReturnPointCapability> capability, ReturnPointCapability instance, Direction side, INBT nbt)
+	public void deserializeNBT(CompoundTag tag)
 	{
-		this.data = Data.CODEC.parse(NBTDynamicOps.INSTANCE, nbt).result();
+		this.data = Data.CODEC.parse(NbtOps.INSTANCE, tag).result();
 	}
 
 	@Override
@@ -78,33 +76,22 @@ public class ReturnPointCapability implements Capability.IStorage<ReturnPointCap
 			: LazyOptional.empty();
 	}
 	
-	static class Data
+	private static record Data(ResourceKey<Level> lastWorld, BlockPos lastPos)
 	{
 		public static final Codec<Data> CODEC = RecordCodecBuilder.create(instance -> instance.group(
-				ResourceLocation.CODEC.xmap(s -> RegistryKey.getOrCreateKey(Registry.WORLD_KEY, s), RegistryKey::getLocation).fieldOf("last_world").forGetter(Data::getLastWorld),
-				BlockPos.CODEC.fieldOf("last_pos").forGetter(Data::getLastPos)
+				ResourceLocation.CODEC.xmap(s -> ResourceKey.create(Registry.DIMENSION_REGISTRY, s), ResourceKey::location).fieldOf("last_world").forGetter(Data::lastWorld),
+				BlockPos.CODEC.fieldOf("last_pos").forGetter(Data::lastPos)
 			).apply(instance, Data::new));
-			
-			private final RegistryKey<World> lastWorld;	public RegistryKey<World> getLastWorld() { return this.lastWorld; }
-			private final BlockPos lastPos;	public BlockPos getLastPos() { return this.lastPos; }
-			
-			public Data(RegistryKey<World> lastWorld, BlockPos lastPos)
-			{
-				this.lastWorld = lastWorld;
-				this.lastPos = lastPos;
-			}
 
-			public Optional<IWorldPosCallable> getWorldPosCallable(ReturnPointCapability cap, MinecraftServer server)
+		public Optional<ContainerLevelAccess> getWorldPosCallable(ReturnPointCapability cap, MinecraftServer server)
+		{
+			ServerLevel world = server.getLevel(this.lastWorld);
+			if (world == null)
 			{
-				ServerWorld world = server.getWorld(this.lastWorld);
-				if (world == null)
-				{
-					cap.data = Optional.empty();
-					return Optional.empty();
-				}
-				return Optional.of(IWorldPosCallable.of(world,this.lastPos));
+				cap.data = Optional.empty();
+				return Optional.empty();
 			}
-			
+			return Optional.of(ContainerLevelAccess.create(world,this.lastPos));
+		}
 	}
-
 }

@@ -1,9 +1,9 @@
 package commoble.hyperbox.client;
 
-import net.minecraft.client.world.DimensionRenderInfo;
-import net.minecraft.util.math.vector.Vector3d;
+import net.minecraft.client.renderer.DimensionSpecialEffects;
+import net.minecraft.world.phys.Vec3;
 
-public class HyperboxRenderInfo extends DimensionRenderInfo
+public class HyperboxRenderInfo extends DimensionSpecialEffects
 {
 
 	public HyperboxRenderInfo()
@@ -13,20 +13,20 @@ public class HyperboxRenderInfo extends DimensionRenderInfo
 		// fog type -- overworld has NORMAL, nether has NONE, end has END
 		// force bright lightmap -- affects *color* of lighting -- only true for end
 		// constant ambient light -- makes bottom of blocks appear brighter, tops appear dimmer -- only true for nether
-        super(Float.NaN, true, DimensionRenderInfo.FogType.NONE, true, true);
+        super(Float.NaN, true, DimensionSpecialEffects.SkyType.NONE, true, true);
 	}
 
 	// get brightness dependent fog color
 	// overworld does some math, nether just returns the input, end scales it toward black
 	@Override
-	public Vector3d func_230494_a_(Vector3d colorIn, float brightness)
+	public Vec3 getBrightnessDependentFogColor(Vec3 colorIn, float brightness)
 	{
 		return colorIn;
 	}
 
 	// is foggy -- only nether returns true
 	@Override
-	public boolean func_230493_a_(int x, int z)
+	public boolean isFoggyAt(int x, int z)
 	{
 		return true;
 	}

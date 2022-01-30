@@ -1,6 +1,6 @@
 package commoble.hyperbox;
 
-import java.io.File;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
@@ -12,61 +12,62 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import commoble.hyperbox.dimension.HyperboxChunkGenerator;
 import commoble.hyperbox.dimension.HyperboxDimension;
 import commoble.hyperbox.dimension.HyperboxDimension.IterationResult;
-import commoble.hyperbox.dimension.HyperboxRegionFileCache;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.entity.player.ServerPlayerEntity;
-import net.minecraft.network.play.server.SPlaySoundEffectPacket;
+import commoble.hyperbox.dimension.HyperboxRegionFileStorage;
+import net.minecraft.core.BlockPos;
+import net.minecraft.network.protocol.game.ClientboundSoundPacket;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.util.RegistryKey;
-import net.minecraft.util.SoundCategory;
-import net.minecraft.util.SoundEvent;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.World;
-import net.minecraft.world.chunk.storage.RegionFileCache;
-import net.minecraft.world.server.ServerWorld;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.sounds.SoundEvent;
+import net.minecraft.sounds.SoundSource;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.level.chunk.storage.RegionFileStorage;
+import net.minecraft.world.level.dimension.DimensionType;
 
 public class MixinCallbacks
 {
-	public static int modifyChunkManagerViewDistance(Supplier<ServerWorld> worldSupplier, int viewDistanceIn)
+	public static int modifyChunkManagerViewDistance(Supplier<ServerLevel> levelSupplier, int viewDistanceIn)
 	{
-		return HyperboxDimension.isHyperboxDimension(worldSupplier.get().getDimensionKey())
+		ServerLevel level = levelSupplier.get();
+		MinecraftServer server = level.getServer();
+		DimensionType hyperboxDimensionType = HyperboxDimension.getDimensionType(server);
+		return hyperboxDimensionType == level.dimensionType()
 			? 2
 			: viewDistanceIn;
 	}
 	
-	public static void onIOWorkerConstruction(File file, boolean sync, Consumer<RegionFileCache> cacheConsumer)
+	public static void onIOWorkerConstruction(Path path, boolean sync, Consumer<RegionFileStorage> cacheConsumer)
 	{
-		if (file.getPath().contains("generated_hyperbox"))
+		if (path.toString().contains("generated_hyperbox"))
 		{
-			cacheConsumer.accept(new HyperboxRegionFileCache(file,sync));
+			cacheConsumer.accept(new HyperboxRegionFileStorage(path,sync));
 		}
 	}
 	
-	public static void onServerWorldPlaySound(ServerWorld serverWorld, @Nullable PlayerEntity ignoredPlayer, double x, double y, double z, SoundEvent sound, SoundCategory category, float volume, float pitch, CallbackInfo info)
+	public static void onServerWorldPlaySound(ServerLevel serverLevel, @Nullable Player ignoredPlayer, double x, double y, double z, SoundEvent sound, SoundSource category, float volume, float pitch, CallbackInfo info)
 	{
-		MinecraftServer server = serverWorld.getServer();
+		MinecraftServer server = serverLevel.getServer();
 		
-		List<ServerPlayerEntity> players = server.getPlayerList().getPlayers();
+		List<ServerPlayer> players = server.getPlayerList().getPlayers();
 		int playerCount = players.size();
 		for (int i=0; i<playerCount; i++)
 		{
-			ServerPlayerEntity serverPlayer = players.get(i);
+			ServerPlayer serverPlayer = players.get(i);
 			if (serverPlayer == null || serverPlayer == ignoredPlayer)
 				continue;
 
-			ServerWorld playerWorld = serverPlayer.getServerWorld();
-			if (playerWorld == null)
+			ServerLevel playerLevel = serverPlayer.getLevel();
+			if (playerLevel == null)
 				continue;
 			
-			RegistryKey<World> playerWorldKey = playerWorld.getDimensionKey();
-			
-			if (!HyperboxDimension.isHyperboxDimension(playerWorldKey))
+			DimensionType hyperboxDimensionType = HyperboxDimension.getDimensionType(server);
+			if (hyperboxDimensionType != playerLevel.dimensionType())
 				continue;
 			
 			// find original parent world of hyperbox
-			IterationResult result = HyperboxDimension.getHyperboxIterationDepth(server, serverWorld, playerWorld);
-			int iterations = result.iterations;
-			BlockPos pos = result.parentPos;
+			IterationResult result = HyperboxDimension.getHyperboxIterationDepth(server, serverLevel, playerLevel);
+			int iterations = result.iterations();
+			BlockPos pos = result.parentPos();
 			if (iterations >= 0 && pos != null)
 			{
 				double dx = x - pos.getX();
@@ -83,8 +84,8 @@ public class MixinCallbacks
 					double packetY = HyperboxChunkGenerator.CENTER.getY() + dy;
 					double packetZ = HyperboxChunkGenerator.CENTER.getZ() + dz;
 					
-					SPlaySoundEffectPacket packet = new SPlaySoundEffectPacket(sound,category,packetX,packetY,packetZ,scaledVolume,scaledPitch);
-					serverPlayer.connection.sendPacket(packet);
+					ClientboundSoundPacket packet = new ClientboundSoundPacket(sound,category,packetX,packetY,packetZ,scaledVolume,scaledPitch);
+					serverPlayer.connection.send(packet);
 				}
 				
 			}

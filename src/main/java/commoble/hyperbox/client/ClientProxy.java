@@ -5,27 +5,27 @@ import commoble.hyperbox.Hyperbox;
 import commoble.hyperbox.RotationHelper;
 import commoble.hyperbox.blocks.HyperboxBlock;
 import it.unimi.dsi.fastutil.objects.Object2ObjectMap;
-import net.minecraft.block.Block;
-import net.minecraft.block.BlockState;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.entity.player.ClientPlayerEntity;
+import net.minecraft.client.color.block.BlockColors;
+import net.minecraft.client.player.LocalPlayer;
+import net.minecraft.client.renderer.DimensionSpecialEffects;
+import net.minecraft.client.renderer.ItemBlockRenderTypes;
 import net.minecraft.client.renderer.RenderType;
-import net.minecraft.client.renderer.RenderTypeLookup;
-import net.minecraft.client.renderer.color.BlockColors;
-import net.minecraft.client.world.DimensionRenderInfo;
-import net.minecraft.item.BlockItem;
-import net.minecraft.item.Item;
-import net.minecraft.util.Direction;
-import net.minecraft.util.Hand;
-import net.minecraft.util.ResourceLocation;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.BlockRayTraceResult;
-import net.minecraft.util.math.vector.Vector3d;
-import net.minecraft.world.World;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.item.BlockItem;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.client.event.ColorHandlerEvent;
-import net.minecraftforge.client.event.DrawHighlightEvent;
+import net.minecraftforge.client.event.DrawSelectionEvent;
+import net.minecraftforge.client.event.EntityRenderersEvent.RegisterRenderers;
 import net.minecraftforge.eventbus.api.IEventBus;
-import net.minecraftforge.fml.client.registry.ClientRegistry;
 import net.minecraftforge.fml.config.ModConfig;
 import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
 
@@ -39,77 +39,80 @@ public class ClientProxy
 		clientConfig = ConfigHelper.register(ModConfig.Type.CLIENT, ClientConfig::new);
 
 		modBus.addListener(ClientProxy::onClientSetup);
+		modBus.addListener(ClientProxy::onRegisterRenderers);
 		modBus.addListener(ClientProxy::onRegisterBlockColors);
 		modBus.addListener(ClientProxy::onRegisterItemColors);
 		forgeBus.addListener(ClientProxy::onHighlightBlock);
 	}
 
-	static void onClientSetup(FMLClientSetupEvent event)
+	private static void onClientSetup(FMLClientSetupEvent event)
 	{
-		ClientRegistry.bindTileEntityRenderer(Hyperbox.INSTANCE.hyperboxTileEntityType.get(), HyperboxTileEntityRenderer::new);
 		event.enqueueWork(ClientProxy::afterClientSetup);
 	}
-
-	static void afterClientSetup()
+	
+	private static void onRegisterRenderers(RegisterRenderers event)
 	{
-		Object2ObjectMap<ResourceLocation, DimensionRenderInfo> renderInfoMap = DimensionRenderInfo.field_239208_a_;
+		event.registerBlockEntityRenderer(Hyperbox.INSTANCE.hyperboxBlockEntityType.get(), HyperboxBlockEntityRenderer::new);
+	}
+
+	private static void afterClientSetup()
+	{
+		Object2ObjectMap<ResourceLocation, DimensionSpecialEffects> renderInfoMap = DimensionSpecialEffects.EFFECTS;
 		renderInfoMap.put(Hyperbox.HYPERBOX_ID, new HyperboxRenderInfo());
 		
-		RenderTypeLookup.setRenderLayer(Hyperbox.INSTANCE.hyperboxBlock.get(), RenderType.getCutout());
-		RenderTypeLookup.setRenderLayer(Hyperbox.INSTANCE.hyperboxPreviewBlock.get(), RenderType.getCutout());
-		RenderTypeLookup.setRenderLayer(Hyperbox.INSTANCE.apertureBlock.get(), RenderType.getCutout());
+		ItemBlockRenderTypes.setRenderLayer(Hyperbox.INSTANCE.hyperboxBlock.get(), RenderType.cutout());
+		ItemBlockRenderTypes.setRenderLayer(Hyperbox.INSTANCE.hyperboxPreviewBlock.get(), RenderType.cutout());
+		ItemBlockRenderTypes.setRenderLayer(Hyperbox.INSTANCE.apertureBlock.get(), RenderType.cutout());
 	}
 	
-	static void onRegisterBlockColors(ColorHandlerEvent.Block event)
+	private static void onRegisterBlockColors(ColorHandlerEvent.Block event)
 	{
 		BlockColors colors = event.getBlockColors();
 		colors.register(ColorHandlers::getHyperboxBlockColor, Hyperbox.INSTANCE.hyperboxBlock.get());
 		colors.register(ColorHandlers::getHyperboxPreviewBlockColor, Hyperbox.INSTANCE.hyperboxPreviewBlock.get());
 		colors.register(ColorHandlers::getApertureBlockColor, Hyperbox.INSTANCE.apertureBlock.get());
-		
-	
 	}
 	
-	static void onRegisterItemColors(ColorHandlerEvent.Item event)
+	private static void onRegisterItemColors(ColorHandlerEvent.Item event)
 	{
 		event.getItemColors().register(ColorHandlers::getHyperboxItemColor, Hyperbox.INSTANCE.hyperboxItem.get());
 	}
 	
-	static void onHighlightBlock(DrawHighlightEvent.HighlightBlock event)
+	private static void onHighlightBlock(DrawSelectionEvent.HighlightBlock event)
 	{
 		if (clientConfig.showPlacementPreview.get())
 		{
 			@SuppressWarnings("resource")
-			ClientPlayerEntity player = Minecraft.getInstance().player;
-			if (player != null && player.world != null)
+			LocalPlayer player = Minecraft.getInstance().player;
+			if (player != null && player.level != null)
 			{
-				Hand hand = player.getActiveHand();
-				Item item = player.getHeldItem(hand == null ? Hand.MAIN_HAND : hand).getItem();
-				if (item instanceof BlockItem)
+				InteractionHand hand = player.getUsedItemHand();
+				Item item = player.getItemInHand(hand == null ? InteractionHand.MAIN_HAND : hand).getItem();
+				if (item instanceof BlockItem blockItem)
 				{
-					Block block = ((BlockItem) item).getBlock();
-					if (block instanceof HyperboxBlock)
+					Block block = blockItem.getBlock();
+					if (block instanceof HyperboxBlock hyperboxBlock)
 					{
-						World world = player.world;
-						BlockRayTraceResult rayTrace = event.getTarget();
-						Direction directionAwayFromTargetedBlock = rayTrace.getFace();
-						BlockPos placePos = rayTrace.getPos().offset(directionAwayFromTargetedBlock);
+						Level level = player.level;
+						BlockHitResult rayTrace = event.getTarget();
+						Direction directionAwayFromTargetedBlock = rayTrace.getDirection();
+						BlockPos placePos = rayTrace.getBlockPos().relative(directionAwayFromTargetedBlock);
 
-						BlockState existingState = world.getBlockState(placePos);
-						if (existingState.isAir(world, placePos) || existingState.getMaterial().isReplaceable())
+						BlockState existingState = level.getBlockState(placePos);
+						if (existingState.isAir() || existingState.getMaterial().isReplaceable())
 						{
 							// only render the preview if we know it would make sense for the block to be
 							// placed where we expect it to be
-							Vector3d hitVec = rayTrace.getHitVec();
+							Vec3 hitVec = rayTrace.getLocation();
 
 							Direction attachmentDirection = directionAwayFromTargetedBlock.getOpposite();
-							Vector3d relativeHitVec = hitVec.subtract(Vector3d.copy(placePos));
+							Vec3 relativeHitVec = hitVec.subtract(Vec3.atLowerCornerOf(placePos));
 
 							Direction outputDirection = RotationHelper.getOutputDirectionFromRelativeHitVec(relativeHitVec, attachmentDirection);
 							RotationHelper.getRotationIndexForDirection(attachmentDirection, outputDirection);
-							BlockState state = HyperboxBlock.getStateForPlacement(Hyperbox.INSTANCE.hyperboxPreviewBlock.get().getDefaultState(), placePos, attachmentDirection, relativeHitVec);
+							BlockState state = HyperboxBlock.getStateForPlacement(Hyperbox.INSTANCE.hyperboxPreviewBlock.get().defaultBlockState(), placePos, attachmentDirection, relativeHitVec);
 
-							BlockPreviewRenderer.renderBlockPreview(placePos, state, world, event.getInfo().getProjectedView(), event.getMatrix(), event.getBuffers());
+							BlockPreviewRenderer.renderBlockPreview(placePos, state, level, event.getCamera().getPosition(), event.getPoseStack(), event.getMultiBufferSource());
 
 						}
 					}

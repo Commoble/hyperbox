@@ -1,5 +1,7 @@
 package commoble.hyperbox.dimension;
 
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
 import java.util.function.Consumer;
 
 import javax.annotation.Nullable;
@@ -8,32 +10,33 @@ import com.mojang.serialization.Codec;
 
 import commoble.hyperbox.Hyperbox;
 import commoble.hyperbox.blocks.ApertureBlock;
-import net.minecraft.block.BlockState;
-import net.minecraft.block.Blocks;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.core.Registry;
+import net.minecraft.core.RegistryAccess;
+import net.minecraft.resources.RegistryLookupCodec;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.util.Direction;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.ChunkPos;
-import net.minecraft.util.registry.DynamicRegistries;
-import net.minecraft.util.registry.Registry;
-import net.minecraft.util.registry.RegistryLookupCodec;
-import net.minecraft.world.Blockreader;
-import net.minecraft.world.IBlockReader;
-import net.minecraft.world.ISeedReader;
-import net.minecraft.world.IWorld;
-import net.minecraft.world.biome.Biome;
-import net.minecraft.world.biome.BiomeManager;
-import net.minecraft.world.biome.provider.SingleBiomeProvider;
-import net.minecraft.world.chunk.IChunk;
-import net.minecraft.world.gen.ChunkGenerator;
-import net.minecraft.world.gen.GenerationStage;
-import net.minecraft.world.gen.Heightmap.Type;
-import net.minecraft.world.gen.WorldGenRegion;
-import net.minecraft.world.gen.feature.structure.Structure;
-import net.minecraft.world.gen.feature.structure.StructureManager;
-import net.minecraft.world.gen.feature.template.TemplateManager;
-import net.minecraft.world.gen.settings.DimensionStructuresSettings;
-import net.minecraft.world.server.ServerWorld;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.WorldGenRegion;
+import net.minecraft.world.level.ChunkPos;
+import net.minecraft.world.level.LevelHeightAccessor;
+import net.minecraft.world.level.NoiseColumn;
+import net.minecraft.world.level.StructureFeatureManager;
+import net.minecraft.world.level.WorldGenLevel;
+import net.minecraft.world.level.biome.Biome;
+import net.minecraft.world.level.biome.BiomeManager;
+import net.minecraft.world.level.biome.Climate;
+import net.minecraft.world.level.biome.FixedBiomeSource;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.chunk.ChunkAccess;
+import net.minecraft.world.level.chunk.ChunkGenerator;
+import net.minecraft.world.level.levelgen.GenerationStep;
+import net.minecraft.world.level.levelgen.Heightmap.Types;
+import net.minecraft.world.level.levelgen.StructureSettings;
+import net.minecraft.world.level.levelgen.blending.Blender;
+import net.minecraft.world.level.levelgen.feature.StructureFeature;
+import net.minecraft.world.level.levelgen.structure.templatesystem.StructureManager;
 
 public class HyperboxChunkGenerator extends ChunkGenerator
 {
@@ -41,16 +44,16 @@ public class HyperboxChunkGenerator extends ChunkGenerator
 		// if we put it in the corner, then the three adjacent regions get loaded
 		// and makes the save file 4x larger than it needs to be
 	public static final ChunkPos CHUNKPOS = new ChunkPos(16,16);
-	public static final long CHUNKID = CHUNKPOS.asLong();
-	public static final BlockPos CORNER = CHUNKPOS.asBlockPos();
-	public static final BlockPos CENTER = CORNER.add(7, 7, 7);
-	public static final BlockPos MIN_SPAWN_CORNER = HyperboxChunkGenerator.CORNER.add(1,1,1);
+	public static final long CHUNKID = CHUNKPOS.toLong();
+	public static final BlockPos CORNER = CHUNKPOS.getWorldPosition();
+	public static final BlockPos CENTER = CORNER.offset(7, 7, 7);
+	public static final BlockPos MIN_SPAWN_CORNER = HyperboxChunkGenerator.CORNER.offset(1,1,1);
 	// don't want to spawn with head in the bedrock ceiling
-	public static final BlockPos MAX_SPAWN_CORNER = HyperboxChunkGenerator.CORNER.add(13,12,13);
+	public static final BlockPos MAX_SPAWN_CORNER = HyperboxChunkGenerator.CORNER.offset(13,12,13);
 	
 	public static final Codec<HyperboxChunkGenerator> CODEC =
 		// the registry lookup doesn't actually serialize, so we don't need a field for it
-		RegistryLookupCodec.getLookUpCodec(Registry.BIOME_KEY)
+		RegistryLookupCodec.create(Registry.BIOME_REGISTRY)
 			.xmap(HyperboxChunkGenerator::new,HyperboxChunkGenerator::getBiomeRegistry)
 			.codec();
 
@@ -62,33 +65,46 @@ public class HyperboxChunkGenerator extends ChunkGenerator
 	// create chunk generator at runtime when dynamic dimension is created
 	public HyperboxChunkGenerator(MinecraftServer server)
 	{
-		this(server.func_244267_aX() // get dynamic registry
-			.getRegistry(Registry.BIOME_KEY));
+		this(server.registryAccess() // get dynamic registry
+			.registryOrThrow(Registry.BIOME_REGISTRY));
 	}
 
 	// create chunk generator when dimension is loaded from the dimension registry on server init
 	public HyperboxChunkGenerator(Registry<Biome> biomes)
 	{
-		super(new SingleBiomeProvider(biomes.getOrThrow(Hyperbox.BIOME_KEY)), new DimensionStructuresSettings(false));
+		super(new FixedBiomeSource(biomes.getOrThrow(Hyperbox.BIOME_KEY)), new StructureSettings(false));
 		this.biomes = biomes;
 	}
 
 	// get codec
 	@Override
-	protected Codec<? extends ChunkGenerator> func_230347_a_()
+	protected Codec<? extends ChunkGenerator> codec()
 	{
 		return CODEC;
 	}
 
 	// get chunk generator but with seed
 	@Override
-	public ChunkGenerator func_230349_a_(long p_230349_1_)
+	public ChunkGenerator withSeed(long p_230349_1_)
 	{
 		return this;	// there's no RNG in the generation so we don't need seeding
 	}
 
 	@Override
-	public void generateSurface(WorldGenRegion worldGenRegion, IChunk chunk)
+	public Climate.Sampler climateSampler()
+	{	// no climate -- same as debug chunk generator
+		return (x, y, z) -> Climate.target(0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F);
+	}
+	
+	// apply carvers
+	@Override
+	public void applyCarvers(WorldGenRegion world, long seed, BiomeManager biomeManager, StructureFeatureManager structureManager, ChunkAccess chunkAccess, GenerationStep.Carving carvingStep)
+	{
+		// noop
+	}
+
+	@Override
+	public void buildSurface(WorldGenRegion worldGenRegion, StructureFeatureManager structureFeatureManager, ChunkAccess chunk)
 	{
 		// set bedrock at the floor and ceiling and walls of the chunk
 		// ceiling y = height-1, so if height==16, ceiling==15
@@ -96,9 +112,9 @@ public class HyperboxChunkGenerator extends ChunkGenerator
 		ChunkPos chunkPos = chunk.getPos();
 		if (chunkPos.equals(CHUNKPOS))
 		{
-			BlockState wallState = Blocks.BEDROCK.getDefaultState();
-			BlockPos.Mutable mutaPos = new BlockPos.Mutable();
-			mutaPos.setPos(CORNER);
+			BlockState wallState = Blocks.BEDROCK.defaultBlockState();
+			BlockPos.MutableBlockPos mutaPos = new BlockPos.MutableBlockPos();
+			mutaPos.set(CORNER);
 			int maxHorizontal = 14;
 			int ceilingY = this.getHeight() - 1;
 			for (int xOff=0; xOff<=maxHorizontal; xOff++)
@@ -112,21 +128,21 @@ public class HyperboxChunkGenerator extends ChunkGenerator
 						// generate wall
 						for (int y=1; y<ceilingY; y++)
 						{
-							mutaPos.setPos(worldX,y,worldZ);
+							mutaPos.set(worldX,y,worldZ);
 							chunk.setBlockState(mutaPos, wallState, false);
 						}
 					}
 					// generate floor and ceiling
-					mutaPos.setPos(worldX, 0, worldZ);
+					mutaPos.set(worldX, 0, worldZ);
 					chunk.setBlockState(mutaPos, wallState, false);
-					mutaPos.setPos(worldX, ceilingY, worldZ);
+					mutaPos.set(worldX, ceilingY, worldZ);
 					chunk.setBlockState(mutaPos, wallState, false);
 				}
 			}
 			
 			// set the apertures
-			BlockState aperture = Hyperbox.INSTANCE.apertureBlock.get().getDefaultState();
-			Consumer<Direction> apertureSetter = dir -> chunk.setBlockState(mutaPos, aperture.with(ApertureBlock.FACING, dir), false);
+			BlockState aperture = Hyperbox.INSTANCE.apertureBlock.get().defaultBlockState();
+			Consumer<Direction> apertureSetter = dir -> chunk.setBlockState(mutaPos, aperture.setValue(ApertureBlock.FACING, dir), false);
 			int centerX = CENTER.getX();
 			int centerY = CENTER.getY();
 			int centerZ = CENTER.getZ();
@@ -137,31 +153,62 @@ public class HyperboxChunkGenerator extends ChunkGenerator
 			int north = centerZ - 7;
 			int south = centerZ + 7;
 			
-			mutaPos.setPos(centerX,up,centerZ);
+			mutaPos.set(centerX,up,centerZ);
 			apertureSetter.accept(Direction.DOWN);
-			mutaPos.setPos(centerX,down,centerZ);
+			mutaPos.set(centerX,down,centerZ);
 			apertureSetter.accept(Direction.UP);
-			mutaPos.setPos(centerX,centerY,south);
+			mutaPos.set(centerX,centerY,south);
 			apertureSetter.accept(Direction.NORTH);
-			mutaPos.setPos(centerX,centerY,north);
+			mutaPos.set(centerX,centerY,north);
 			apertureSetter.accept(Direction.SOUTH);
-			mutaPos.setPos(east,centerY,centerZ);
+			mutaPos.set(east,centerY,centerZ);
 			apertureSetter.accept(Direction.WEST);
-			mutaPos.setPos(west,centerY,centerZ);
+			mutaPos.set(west,centerY,centerZ);
 			apertureSetter.accept(Direction.EAST);
 			
 		}
 	}
-
-	// fill from noise
+	
 	@Override
-	public void func_230352_b_(IWorld world, StructureManager structures, IChunk chunk)
+	public void spawnOriginalMobs(WorldGenRegion region)
 	{
-		// this is where the flat chunk generator generates flat chunks
+		// NOOP
 	}
 
 	@Override
-	public int getHeight(int x, int z, Type heightmapType)
+	public int getGenDepth() // total number of available y-levels (between bottom and top)
+	{
+		return 16;
+	}
+
+	@Override
+	public CompletableFuture<ChunkAccess> fillFromNoise(Executor executor, Blender blender, StructureFeatureManager structures, ChunkAccess chunk)
+	{
+		// this is where the flat chunk generator generates flat chunks
+		return CompletableFuture.completedFuture(chunk);
+	}
+
+	@Override
+	public int getSeaLevel()
+	{
+		// only used by features' generate methods
+		return 0;
+	}
+
+	@Override
+	public int getMinY()
+	{
+		// the lowest y-level in the dimension
+		// debug -> 0
+		// flat -> 0
+		// noise -> NoiseSettings#minY
+			// overworld -> -64
+			// nether -> 0
+		return 0;
+	}
+
+	@Override
+	public int getBaseHeight(int x, int z, Types heightmapType, LevelHeightAccessor level)
 	{
 		// flat chunk generator counts the solid blockstates in its list
 		// debug chunk generator returns 0
@@ -172,68 +219,57 @@ public class HyperboxChunkGenerator extends ChunkGenerator
 
 	// get base column
 	@Override
-	public IBlockReader func_230348_a_(int x, int z)
+	public NoiseColumn getBaseColumn(int x, int z, LevelHeightAccessor level)
 	{
 		// flat chunk generator returns a reader over its blockstate list
 		// debug chunk generator returns a reader over an empty array
 		// normal chunk generator returns a column whose contents are either default block, default fluid, or air
 		
-		return new Blockreader(new BlockState[0]);
-	}
-	
-	@Override
-	public int getGroundHeight()
-	{
-		return 1;
-	}
-
-	@Override
-	public int getMaxBuildHeight()
-	{
-		return 16;
+		return new NoiseColumn(0, new BlockState[0]);
 	}
 	
 	// let's make sure some of the default chunk generator methods aren't doing
 	// anything we don't want them to either
-	
-	// apply carvers
-	@Override
-	public void func_230350_a_(long seed, BiomeManager biomes, IChunk chunk, GenerationStage.Carving carvingStage)
-	{
-		// noop
-	}
 
 	// get structure position
 	@Nullable
 	@Override
-	public BlockPos func_235956_a_(ServerWorld world, Structure<?> structure, BlockPos start, int radius, boolean skipExistingChunks)
+	public BlockPos findNearestMapFeature(ServerLevel world, StructureFeature<?> structure, BlockPos start, int radius, boolean skipExistingChunks)
 	{
 		return null;
 	}
 	
 	// decorate biomes with features
 	@Override
-	public void func_230351_a_(WorldGenRegion world, StructureManager structures)
+	public void applyBiomeDecoration(WorldGenLevel world, ChunkAccess chunkAccess, StructureFeatureManager structures)
 	{
 		// noop
 	}
 	
-	// has stronghold
 	@Override
-	public boolean func_235952_a_(ChunkPos chunkPos)
+	public int getSpawnHeight(LevelHeightAccessor level)
 	{
-		return false;
+		return 1;
 	}
 	
 	// create structures
 	@Override
-	public void func_242707_a(DynamicRegistries registries, StructureManager structures, IChunk chunk, TemplateManager templates, long seed)
+	public void createStructures(RegistryAccess registries, StructureFeatureManager structures, ChunkAccess chunk, StructureManager templates, long seed)
 	{
+		// no structures
 	}
 	
 	// create structure references
 	@Override
-	public void func_235953_a_(ISeedReader world, StructureManager structures, IChunk chunk)
+	public void createReferences(WorldGenLevel world, StructureFeatureManager structures, ChunkAccess chunk)
 	{
+		// no structures
+	}
+	
+	// has stronghold
+	@Override
+	public boolean hasStronghold(ChunkPos chunkPos)
+	{
+		return false;
 	}
 }

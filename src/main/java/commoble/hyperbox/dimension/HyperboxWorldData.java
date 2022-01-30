@@ -1,24 +1,24 @@
 package commoble.hyperbox.dimension;
 
 import commoble.hyperbox.Hyperbox;
-import commoble.hyperbox.blocks.ApertureTileEntity;
-import commoble.hyperbox.blocks.HyperboxTileEntity;
-import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.nbt.NBTUtil;
+import commoble.hyperbox.blocks.ApertureBlockEntity;
+import commoble.hyperbox.blocks.HyperboxBlockEntity;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.NbtUtils;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.util.Direction;
-import net.minecraft.util.RegistryKey;
-import net.minecraft.util.ResourceLocation;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.registry.Registry;
-import net.minecraft.world.World;
-import net.minecraft.world.server.ServerWorld;
-import net.minecraft.world.storage.WorldSavedData;
+import net.minecraft.core.Direction;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Registry;
+import net.minecraft.world.level.Level;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.level.saveddata.SavedData;
 
 // WorldSavedData is used for storing extra data in ServerWorld instances
 
 // this class is used for storing information in a hyperbox world
-public class HyperboxWorldData extends WorldSavedData
+public class HyperboxWorldData extends SavedData
 {
 	public static final String DATA_KEY = Hyperbox.MODID + ":hyperbox";
 	public static final String PARENT_WORLD_KEY = "parent_world";
@@ -26,64 +26,72 @@ public class HyperboxWorldData extends WorldSavedData
 	public static final BlockPos DEFAULT_PARENT_POS = new BlockPos(0,65,0);
 	
 	// ID of the world this hyperbox world's parent block is located in
-	private RegistryKey<World> parentWorld = World.OVERWORLD;
-	public RegistryKey<World> getParentWorld() { return this.parentWorld; }
+	private ResourceKey<Level> parentWorld = Level.OVERWORLD;
+	public ResourceKey<Level> getParentWorld() { return this.parentWorld; }
 	// position of this hyperbox world's parent block
 	private BlockPos parentPos = DEFAULT_PARENT_POS;
 	public BlockPos getParentPos() { return this.parentPos; }
+	
+	public static HyperboxWorldData getOrCreate(ServerLevel world)
+	{
+		return world.getDataStorage().computeIfAbsent(HyperboxWorldData::load, HyperboxWorldData::create, DATA_KEY);
+	}
+	
+	public static HyperboxWorldData load(CompoundTag nbt)
+	{
+		ResourceKey<Level> parentWorld = ResourceKey.create(Registry.DIMENSION_REGISTRY, new ResourceLocation(nbt.getString(PARENT_WORLD_KEY)));
+		BlockPos parentPos = NbtUtils.readBlockPos(nbt.getCompound(PARENT_POS_KEY));
+		return new HyperboxWorldData(parentWorld, parentPos);
+	}
+	
+	public static HyperboxWorldData create()
+	{
+		return new HyperboxWorldData(Level.OVERWORLD, DEFAULT_PARENT_POS);
+	}
 
-	public HyperboxWorldData()
+	protected HyperboxWorldData(ResourceKey<Level> parentWorld, BlockPos parentPos)
 	{
-		super(DATA_KEY);
+		this.parentWorld = parentWorld;
+		this.parentPos = parentPos;
 	}
 	
-	public static HyperboxWorldData getOrCreate(ServerWorld world)
+	public void setWorldPos(MinecraftServer server, ServerLevel thisWorld, ResourceKey<Level> thisWorldKey, ResourceKey<Level> parentWorldKey, BlockPos parentPos, int color)
 	{
-		return world.getSavedData().getOrCreate(HyperboxWorldData::new, DATA_KEY);
-	}
-	
-	public void setWorldPos(MinecraftServer server, ServerWorld thisWorld, RegistryKey<World> thisWorldKey, RegistryKey<World> parentWorldKey, BlockPos parentPos, int color)
-	{
-		RegistryKey<World> oldParentWorld = this.parentWorld;
+		ResourceKey<Level> oldParentWorld = this.parentWorld;
 		BlockPos oldParentPos = this.parentPos;
 		if (!oldParentWorld.equals(parentWorldKey) || !(oldParentPos.equals(parentPos)))
 		{
-			this.clearOldParent(server, thisWorldKey, oldParentWorld, oldParentPos);
+			clearOldParent(server, thisWorldKey, oldParentWorld, oldParentPos);
 		}
 		this.parentWorld = parentWorldKey;
 		this.parentPos = parentPos;
 		for (Direction dir : Direction.values())
 		{
-			BlockPos aperturePos = HyperboxChunkGenerator.CENTER.offset(dir, 7);
-			ApertureTileEntity.get(thisWorld, aperturePos).ifPresent(aperture -> aperture.setColor(color));
+			BlockPos aperturePos = HyperboxChunkGenerator.CENTER.relative(dir, 7);
+			if (thisWorld.getBlockEntity(aperturePos) instanceof ApertureBlockEntity aperture)
+			{
+				aperture.setColor(color);
+			}
 		}
-		this.markDirty();
+		this.setDirty();
 	}
 	
-	protected void clearOldParent(MinecraftServer server, RegistryKey<World> thisWorldKey, RegistryKey<World> oldParentKey, BlockPos oldParentPos)
+	protected static void clearOldParent(MinecraftServer server, ResourceKey<Level> thisWorldKey, ResourceKey<Level> oldParentKey, BlockPos oldParentPos)
 	{
-		ServerWorld oldParentWorld = server.getWorld(oldParentKey);
-		if (oldParentWorld != null)
+		ServerLevel oldParentWorld = server.getLevel(oldParentKey);
+		if (oldParentWorld != null
+			&& oldParentWorld.getBlockEntity(oldParentPos) instanceof HyperboxBlockEntity hyperbox
+			&& hyperbox.getLevelKey().filter(thisWorldKey::equals).isPresent())
 		{
-			HyperboxTileEntity.get(oldParentWorld, oldParentPos)
-				.flatMap(HyperboxTileEntity::getWorldKey)
-				.filter(thisWorldKey::equals)
-				.ifPresent($ -> oldParentWorld.removeBlock(oldParentPos, true));
+			oldParentWorld.removeBlock(oldParentPos, true);
 		}
 	}
 
 	@Override
-	public void read(CompoundNBT nbt)
+	public CompoundTag save(CompoundTag compound)
 	{
-		this.parentWorld = RegistryKey.getOrCreateKey(Registry.WORLD_KEY, new ResourceLocation(nbt.getString(PARENT_WORLD_KEY)));
-		this.parentPos = NBTUtil.readBlockPos(nbt.getCompound(PARENT_POS_KEY));
-	}
-
-	@Override
-	public CompoundNBT write(CompoundNBT compound)
-	{
-		compound.putString(PARENT_WORLD_KEY, this.parentWorld.getLocation().toString());
-		compound.put(PARENT_POS_KEY, NBTUtil.writeBlockPos(this.parentPos));
+		compound.putString(PARENT_WORLD_KEY, this.parentWorld.location().toString());
+		compound.put(PARENT_POS_KEY, NbtUtils.writeBlockPos(this.parentPos));
 		return compound;
 	}
 

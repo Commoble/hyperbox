@@ -4,15 +4,15 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.Set;
 
-import net.minecraft.util.Direction;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.MathHelper;
-import net.minecraft.world.IBlockReader;
+import net.minecraft.core.Direction;
+import net.minecraft.core.BlockPos;
+import net.minecraft.util.Mth;
+import net.minecraft.world.level.BlockGetter;
 
 public class SpawnPointHelper
 {
 	
-	public static BlockPos getBestSpawnPosition(IBlockReader world, BlockPos target, BlockPos minSpawnCorner, BlockPos maxSpawnCorner)
+	public static BlockPos getBestSpawnPosition(BlockGetter world, BlockPos target, BlockPos minSpawnCorner, BlockPos maxSpawnCorner)
 	{
 		BlockPos clampedTarget = clamp(target, minSpawnCorner, maxSpawnCorner);
 		BlockPos bestPos = clampedTarget;
@@ -52,7 +52,7 @@ public class SpawnPointHelper
 				for (int i=0; i<dirCount; i++)
 				{
 					Direction dir = dirs[i];
-					BlockPos nextPosToVisit = nextPos.offset(dir);
+					BlockPos nextPosToVisit = nextPos.relative(dir);
 					if (!visited.contains(nextPosToVisit)
 						&& isPosAllowed(world, nextPosToVisit, minSpawnCorner, maxSpawnCorner))
 					{
@@ -68,16 +68,16 @@ public class SpawnPointHelper
 	
 	public static BlockPos clamp(BlockPos pos, BlockPos min, BlockPos max)
 	{
-		int x = MathHelper.clamp(pos.getX(), min.getX(), max.getX());
-		int y = MathHelper.clamp(pos.getY(), min.getY(), max.getY());
-		int z = MathHelper.clamp(pos.getZ(), min.getZ(), max.getZ());
+		int x = Mth.clamp(pos.getX(), min.getX(), max.getX());
+		int y = Mth.clamp(pos.getY(), min.getY(), max.getY());
+		int z = Mth.clamp(pos.getZ(), min.getZ(), max.getZ());
 		return new BlockPos(x,y,z);
 	}
 	
-	public static boolean isPosAllowed(IBlockReader world, BlockPos pos, BlockPos min, BlockPos max)
+	public static boolean isPosAllowed(BlockGetter world, BlockPos pos, BlockPos min, BlockPos max)
 	{
 		return isPosWithinBounds(pos, min, max)
-			&& world.getBlockState(pos).getBlockHardness(world, pos) >= 0; // don't search through bedrock, etc
+			&& world.getBlockState(pos).getDestroySpeed(world, pos) >= 0; // don't search through bedrock, etc
 	}
 	
 	public static boolean isPosWithinBounds(BlockPos pos, BlockPos min, BlockPos max)
@@ -93,25 +93,25 @@ public class SpawnPointHelper
 			&& z <= max.getZ();
 	}
 	
-	public static int getViability(IBlockReader world, BlockPos target)
+	public static int getViability(BlockGetter world, BlockPos target)
 	{
-		return doesBlockBlockHead(world, target.up())
+		return doesBlockBlockHead(world, target.above())
 				? 0
 				: doesBlockBlockFeet(world, target)
 					? 1
-					: doesBlockBlockFeet(world,target.down())
+					: doesBlockBlockFeet(world,target.below())
 						? 3
 						: 2;
 	}
 
 	// return true if the block has no interaction shape (doesn't block cursor interactions)
-	public static boolean doesBlockBlockHead(IBlockReader world, BlockPos pos)
+	public static boolean doesBlockBlockHead(BlockGetter world, BlockPos pos)
 	{
 		return !world.getBlockState(pos).getShape(world,pos).isEmpty();
 	}
 	
 	// return true if the block has no collision shape (doesn't prevent movement)
-	public static boolean doesBlockBlockFeet(IBlockReader world, BlockPos pos)
+	public static boolean doesBlockBlockFeet(BlockGetter world, BlockPos pos)
 	{
 		return !world.getBlockState(pos).getCollisionShape(world,pos).isEmpty();
 	}

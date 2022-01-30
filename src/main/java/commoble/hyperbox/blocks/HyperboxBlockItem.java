@@ -1,70 +1,71 @@
 package commoble.hyperbox.blocks;
 
-import net.minecraft.block.Block;
-import net.minecraft.block.BlockState;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.item.BlockItem;
-import net.minecraft.item.IDyeableArmorItem;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.World;
+import net.minecraft.core.BlockPos;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.BlockItem;
+import net.minecraft.world.item.DyeableLeatherItem;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.state.BlockState;
 
-// we set the color info to both the display AND the blockentity tag
-// so creative pickblock doesn't yeet the data, but the display info still works otherwise
-public class HyperboxBlockItem extends BlockItem implements IDyeableArmorItem
+public class HyperboxBlockItem extends BlockItem implements DyeableLeatherItem
 {
 	public static final int DEFAULT_COLOR = 0x4a354a;
+	public static final String BLOCKENTITY_KEY = "BlockEntityTag";
+	public static final String DISPLAY_KEY = "display";
+	public static final String COLOR_KEY = HyperboxBlockEntity.COLOR;
 
-	public HyperboxBlockItem(Block blockIn, Properties builder)
+	public HyperboxBlockItem(Block block, Properties builder)
 	{
-		super(blockIn, builder);
+		super(block, builder);
 	}
 
 	@Override
 	public int getColor(ItemStack stack)
 	{
-		CompoundNBT displayTag = stack.getChildTag("display");
+		CompoundTag displayTag = stack.getTagElement(DISPLAY_KEY);
 		
-		if (displayTag != null && displayTag.contains("color", 99))
+		if (displayTag != null && displayTag.contains(COLOR_KEY, 99))
 		{
-			return displayTag.getInt("color");
+			return displayTag.getInt(COLOR_KEY);
 		}
 		
-		CompoundNBT blockEntityTag = stack.getChildTag("BlockEntityTag");
+		CompoundTag blockEntityTag = stack.getTagElement(BLOCKENTITY_KEY);
 		
-		if (blockEntityTag != null && blockEntityTag.contains("color", 99))
+		if (blockEntityTag != null && blockEntityTag.contains(COLOR_KEY, 99))
 		{
-			return blockEntityTag.getInt("color");
+			return blockEntityTag.getInt(COLOR_KEY);
 		}
 		
 		return DEFAULT_COLOR;
 	}
 
 	@Override
-	public boolean hasColor(ItemStack stack)
+	public boolean hasCustomColor(ItemStack stack)
 	{
-		CompoundNBT displayTag = stack.getChildTag("display");
-		if (displayTag != null && displayTag.contains("color", 99))
+		CompoundTag displayTag = stack.getTagElement(DISPLAY_KEY);
+		if (displayTag != null && displayTag.contains(COLOR_KEY, 99))
 			return true;
 
-		CompoundNBT blockEntityTag = stack.getChildTag("BlockEntityTag");
-		return blockEntityTag != null && blockEntityTag.contains("color", 99);
+		CompoundTag blockEntityTag = stack.getTagElement(BLOCKENTITY_KEY);
+		return blockEntityTag != null && blockEntityTag.contains(COLOR_KEY, 99);
 	}
 
 	@Override
-	public void removeColor(ItemStack stack)
+	public void clearColor(ItemStack stack)
 	{
-		CompoundNBT displayTag = stack.getChildTag("display");
-		if (displayTag != null && displayTag.contains("color"))
+		CompoundTag displayTag = stack.getTagElement(DISPLAY_KEY);
+		if (displayTag != null && displayTag.contains(COLOR_KEY))
 		{
-			displayTag.remove("color");
+			displayTag.remove(COLOR_KEY);
 		}
-		CompoundNBT blockEntityTag = stack.getChildTag("BlockEntityTag");
-		if (blockEntityTag != null && blockEntityTag.contains("color"))
+		CompoundTag blockEntityTag = stack.getTagElement(BLOCKENTITY_KEY);
+		if (blockEntityTag != null && blockEntityTag.contains(COLOR_KEY))
 		{
-			blockEntityTag.remove("color");
+			blockEntityTag.remove(COLOR_KEY);
 		}
 
 	}
@@ -72,20 +73,17 @@ public class HyperboxBlockItem extends BlockItem implements IDyeableArmorItem
 	@Override
 	public void setColor(ItemStack stack, int color)
 	{
-		stack.getOrCreateChildTag("display").putInt("color", color);
-		stack.getOrCreateChildTag("BlockEntityTag").putInt("color", color);
+		stack.getOrCreateTagElement(DISPLAY_KEY).putInt(COLOR_KEY, color);
+		stack.getOrCreateTagElement(BLOCKENTITY_KEY).putInt(COLOR_KEY, color);
 	}
 
 	@Override
-	protected boolean onBlockPlaced(BlockPos pos, World worldIn, PlayerEntity player, ItemStack stack, BlockState state)
+	protected boolean updateCustomBlockEntityTag(BlockPos pos, Level level, Player player, ItemStack stack, BlockState state)
 	{
-		// return super.onBlockPlaced(pos, worldIn, player, stack, state);
-		boolean success = super.onBlockPlaced(pos, worldIn, player, stack, state);
-		if (success)
+		boolean success = super.updateCustomBlockEntityTag(pos, level, player, stack, state);
+		if (success && level.getBlockEntity(pos) instanceof HyperboxBlockEntity hyperbox)
 		{
-			HyperboxTileEntity.get(worldIn, pos).ifPresent(hyperbox -> {
-				hyperbox.setColor(getColorIfHyperbox(stack));
-			});
+			hyperbox.setColor(getColorIfHyperbox(stack));
 		}
 		return success;
 	}
@@ -93,6 +91,8 @@ public class HyperboxBlockItem extends BlockItem implements IDyeableArmorItem
 	public static int getColorIfHyperbox(ItemStack stack)
 	{
 		Item item = stack.getItem();
-		return item instanceof HyperboxBlockItem ? ((HyperboxBlockItem) item).getColor(stack) : DEFAULT_COLOR;
+		return item instanceof HyperboxBlockItem hyperboxItem
+			? hyperboxItem.getColor(stack)
+			: DEFAULT_COLOR;
 	}
 }

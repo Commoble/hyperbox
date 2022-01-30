@@ -4,7 +4,6 @@ import java.util.Optional;
 
 import javax.annotation.Nullable;
 
-import commoble.hyperbox.DirectionHelper;
 import commoble.hyperbox.Hyperbox;
 import commoble.hyperbox.RotationHelper;
 import commoble.hyperbox.dimension.DelayedTeleportData;
@@ -12,34 +11,36 @@ import commoble.hyperbox.dimension.HyperboxChunkGenerator;
 import commoble.hyperbox.dimension.HyperboxDimension;
 import commoble.hyperbox.dimension.ReturnPointCapability;
 import commoble.hyperbox.dimension.SpawnPointHelper;
-import net.minecraft.block.Block;
-import net.minecraft.block.BlockState;
-import net.minecraft.entity.LivingEntity;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.entity.player.ServerPlayerEntity;
-import net.minecraft.item.BlockItemUseContext;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.state.DirectionProperty;
-import net.minecraft.state.IntegerProperty;
-import net.minecraft.state.StateContainer.Builder;
-import net.minecraft.state.properties.BlockStateProperties;
-import net.minecraft.tileentity.TileEntity;
-import net.minecraft.util.ActionResultType;
-import net.minecraft.util.Direction;
-import net.minecraft.util.Hand;
-import net.minecraft.util.Mirror;
-import net.minecraft.util.Rotation;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.BlockRayTraceResult;
-import net.minecraft.util.math.vector.Vector3d;
-import net.minecraft.world.IBlockReader;
-import net.minecraft.world.IWorldReader;
-import net.minecraft.world.World;
-import net.minecraft.world.server.ServerWorld;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResult;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.context.BlockPlaceContext;
+import net.minecraft.world.level.BlockGetter;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.LevelReader;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.EntityBlock;
+import net.minecraft.world.level.block.Mirror;
+import net.minecraft.world.level.block.Rotation;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.StateDefinition.Builder;
+import net.minecraft.world.level.block.state.properties.BlockStateProperties;
+import net.minecraft.world.level.block.state.properties.DirectionProperty;
+import net.minecraft.world.level.block.state.properties.IntegerProperty;
+import net.minecraft.world.level.dimension.DimensionType;
+import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.Vec3;
 
-public class HyperboxBlock extends Block
+public class HyperboxBlock extends Block implements EntityBlock
 {	
 	public static final DirectionProperty ATTACHMENT_DIRECTION = BlockStateProperties.FACING;
 	public static final IntegerProperty ROTATION = IntegerProperty.create("rotation", 0,3);
@@ -48,49 +49,43 @@ public class HyperboxBlock extends Block
 	{
 		super(properties);
 		// this default state results in the "north" face of the model pointing north
-		this.setDefaultState(this.stateContainer.getBaseState()
-			.with(ATTACHMENT_DIRECTION, Direction.DOWN)
-			.with(ROTATION, 0));
+		this.registerDefaultState(this.stateDefinition.any()
+			.setValue(ATTACHMENT_DIRECTION, Direction.DOWN)
+			.setValue(ROTATION, 0));
 	}
 
 	@Override
-	protected void fillStateContainer(Builder<Block, BlockState> builder)
+	protected void createBlockStateDefinition(Builder<Block, BlockState> builder)
 	{
-		super.fillStateContainer(builder);
+		super.createBlockStateDefinition(builder);
 		builder.add(ATTACHMENT_DIRECTION, ROTATION);
 	}
 
 	@Override
-	public boolean hasTileEntity(BlockState state)
+	public BlockEntity newBlockEntity(BlockPos pos, BlockState state)
 	{
-		return true;
+		return Hyperbox.INSTANCE.hyperboxBlockEntityType.get().create(pos, state);
 	}
 
 	@Override
-	public TileEntity createTileEntity(BlockState state, IBlockReader world)
+	public BlockState getStateForPlacement(BlockPlaceContext context)
 	{
-		return Hyperbox.INSTANCE.hyperboxTileEntityType.get().create();
-	}
-
-	@Override
-	public BlockState getStateForPlacement(BlockItemUseContext context)
-	{
-		BlockState defaultState = this.getDefaultState();
-		BlockPos placePos = context.getPos();
-		Direction faceOfAdjacentBlock = context.getFace();
+		BlockState defaultState = this.defaultBlockState();
+		BlockPos placePos = context.getClickedPos();
+		Direction faceOfAdjacentBlock = context.getClickedFace();
 		Direction directionTowardAdjacentBlock = faceOfAdjacentBlock.getOpposite();
-		Vector3d relativeHitVec = context.getHitVec().subtract(Vector3d.copy(placePos));
+		Vec3 relativeHitVec = context.getClickLocation().subtract(Vec3.atLowerCornerOf(placePos));
 		return getStateForPlacement(defaultState, placePos, directionTowardAdjacentBlock, relativeHitVec);
 	}
 	
-	public static BlockState getStateForPlacement(BlockState defaultState, BlockPos placePos, Direction directionTowardAdjacentBlock, Vector3d relativeHitVec)
+	public static BlockState getStateForPlacement(BlockState defaultState, BlockPos placePos, Direction directionTowardAdjacentBlock, Vec3 relativeHitVec)
 	{
 		Direction outputDirection = RotationHelper.getOutputDirectionFromRelativeHitVec(relativeHitVec, directionTowardAdjacentBlock);
 		int rotationIndex = RotationHelper.getRotationIndexForDirection(directionTowardAdjacentBlock, outputDirection);
 		
 		if (defaultState.hasProperty(ATTACHMENT_DIRECTION) && defaultState.hasProperty(ROTATION))
 		{
-			return defaultState.with(ATTACHMENT_DIRECTION, directionTowardAdjacentBlock).with(ROTATION, rotationIndex);
+			return defaultState.setValue(ATTACHMENT_DIRECTION, directionTowardAdjacentBlock).setValue(ROTATION, rotationIndex);
 		}
 		else
 		{
@@ -99,78 +94,75 @@ public class HyperboxBlock extends Block
 	}
 
 	@Override
-	public ActionResultType onBlockActivated(BlockState state, World worldIn, BlockPos pos, PlayerEntity player, Hand handIn, BlockRayTraceResult hit)
+	@Deprecated
+	public InteractionResult use(BlockState state, Level level, BlockPos pos, Player player, InteractionHand hand, BlockHitResult hit)
 	{
-		if (player instanceof ServerPlayerEntity)
+		if (player instanceof ServerPlayer serverPlayer)
 		{
-			ServerPlayerEntity serverPlayer = (ServerPlayerEntity)player;
 			MinecraftServer server = serverPlayer.server;
-			Direction faceActivated = hit.getFace();
+			Direction faceActivated = hit.getDirection();
 			
-			if (!HyperboxDimension.isHyperboxDimension(worldIn.getDimensionKey()))
+			DimensionType hyperboxDimensionType = HyperboxDimension.getDimensionType(server);
+			if (hyperboxDimensionType != level.dimensionType())
 			{
 				serverPlayer.getCapability(ReturnPointCapability.INSTANCE).ifPresent(cap ->{
-					cap.setReturnPoint(worldIn.getDimensionKey(), pos);
+					cap.setReturnPoint(level.dimension(), pos);
 				});
 			}
 			
-			HyperboxTileEntity.get(worldIn, pos)
-				.ifPresent(te -> 
-				{
-					ServerWorld targetWorld = te.getOrCreateWorld(server);
-					BlockPos posAdjacentToAperture = this.getPosAdjacentToAperture(state, faceActivated);
-					BlockPos spawnPoint = SpawnPointHelper.getBestSpawnPosition(
-						targetWorld,
-						posAdjacentToAperture,
-						HyperboxChunkGenerator.MIN_SPAWN_CORNER,
-						HyperboxChunkGenerator.MAX_SPAWN_CORNER);
-//					DimensionHelper.sendPlayerToDimension(serverPlayer, targetWorld, Vector3d.copyCentered(spawnPoint));
-					DelayedTeleportData.getOrCreate(serverPlayer.getServerWorld()).schedulePlayerTeleport(serverPlayer, targetWorld.getDimensionKey(), Vector3d.copyCentered(spawnPoint));
-				});
+			if (level.getBlockEntity(pos) instanceof HyperboxBlockEntity te)
+			{
+				ServerLevel targetWorld = te.getOrCreateLevel(server);
+				BlockPos posAdjacentToAperture = this.getPosAdjacentToAperture(state, faceActivated);
+				BlockPos spawnPoint = SpawnPointHelper.getBestSpawnPosition(
+					targetWorld,
+					posAdjacentToAperture,
+					HyperboxChunkGenerator.MIN_SPAWN_CORNER,
+					HyperboxChunkGenerator.MAX_SPAWN_CORNER);
+				DelayedTeleportData.getOrCreate(serverPlayer.getLevel()).schedulePlayerTeleport(serverPlayer, targetWorld.dimension(), Vec3.atCenterOf(spawnPoint));
+			}
 		}
 		
-		return ActionResultType.SUCCESS;
+		return InteractionResult.SUCCESS;
 	}
 
 	// called by BlockItems after the block is placed into the world
 	@Override
-	public void onBlockPlacedBy(World worldIn, BlockPos pos, BlockState state, @Nullable LivingEntity placer, ItemStack stack)
+	public void setPlacedBy(Level level, BlockPos pos, BlockState state, @Nullable LivingEntity placer, ItemStack stack)
 	{
 		// if item was named via anvil+nametag, convert that to a TE name
-		HyperboxTileEntity.get(worldIn, pos)
-			.ifPresent(te ->
+		if (level.getBlockEntity(pos) instanceof HyperboxBlockEntity hyperbox)
+		{
+			Item item = stack.getItem();
+			// setting the color on the client world ensures that the te
+			// gets its color set properly after we place it on the client
+			// so that it renders correctly
+			if (item instanceof HyperboxBlockItem hyperboxItem)
 			{
-				Item item = stack.getItem();
-				// setting the color on the client world ensures that the te
-				// gets its color set properly after we place it on the client
-				// so that it renders correctly
-				if (item instanceof HyperboxBlockItem)
+				hyperbox.setColor(hyperboxItem.getColor(stack));
+			}
+			if (!level.isClientSide)
+			{
+				if (stack.hasCustomHoverName())
 				{
-					HyperboxBlockItem hyperboxItem = (HyperboxBlockItem)item;
-					te.setColor(hyperboxItem.getColor(stack));
+					hyperbox.setName(stack.getHoverName());
 				}
-				if (!worldIn.isRemote)
+				if (!hyperbox.getLevelKey().isPresent())
 				{
-					if (stack.hasDisplayName())
-					{
-						te.setName(stack.getDisplayName());
-					}
-					if (!te.getWorldKey().isPresent())
-					{
-						te.setNewWorldKey();
-					}
-					te.afterBlockPlaced();
-					}
-			});
+					hyperbox.createAndSetNewLevelKey();
+				}
+				hyperbox.afterBlockPlaced();
+			}
+		}
 	}
 
 	@Override
 	@Deprecated
-	public void onReplaced(BlockState state, World worldIn, BlockPos pos, BlockState newState, boolean isMoving)
+	public void onRemove(BlockState state, Level level, BlockPos pos, BlockState newState, boolean isMoving)
 	{
 		// the supercall removes the tile entity
-		super.onReplaced(state, worldIn, pos, newState, isMoving);
-		notifyNeighborsOfStrongSignalChange(state, worldIn, pos);
+		super.onRemove(state, level, pos, newState, isMoving);
+		notifyNeighborsOfStrongSignalChange(state, level, pos);
 	}
 
 	// given the side of a hyperbox in absolute world space,
@@ -184,84 +176,87 @@ public class HyperboxBlock extends Block
 		// if side is e.g. west (the west side of the parent block)
 		// then the target position is the block one space to the east of the western aperture
 		// or six spaces to the west of the center
-		return HyperboxChunkGenerator.CENTER.offset(originalFace, 6);
+		return HyperboxChunkGenerator.CENTER.relative(originalFace, 6);
 	}
 
 	@Override
-	public boolean canProvidePower(BlockState state)
+	@Deprecated
+	public boolean isSignalSource(BlockState state)
 	{
 		return true;
 	}
 
 	@Override
-	public int getWeakPower(BlockState blockState, IBlockReader world, BlockPos pos, Direction sideOfAdjacentBlock)
+	@Deprecated
+	public int getSignal(BlockState blockState, BlockGetter level, BlockPos pos, Direction sideOfAdjacentBlock)
 	{
 		Direction originalFace = this.getOriginalFace(blockState, sideOfAdjacentBlock.getOpposite());
-		return HyperboxTileEntity.get(world, pos)
-			.map(te -> te.getPower(false, originalFace))
-			.orElse(0);
+		return level.getBlockEntity(pos) instanceof HyperboxBlockEntity hyperbox
+			? hyperbox.getPower(false, originalFace)
+			: 0;
 	}
 
 	@Override
-	public int getStrongPower(BlockState blockState, IBlockReader world, BlockPos pos, Direction sideOfAdjacentBlock)
+	@Deprecated
+	public int getDirectSignal(BlockState blockState, BlockGetter level, BlockPos pos, Direction sideOfAdjacentBlock)
 	{
 		Direction originalFace = this.getOriginalFace(blockState, sideOfAdjacentBlock.getOpposite());
-		return HyperboxTileEntity.get(world, pos)
-			.map(te -> te.getPower(true, originalFace))
-			.orElse(0);
+		return level.getBlockEntity(pos) instanceof HyperboxBlockEntity hyperbox
+			? hyperbox.getPower(true, originalFace)
+			: 0;
 	}
 	
 	// called after an adjacent blockstate changes	
 	@Override
 	@Deprecated
-	public void neighborChanged(BlockState thisState, World world, BlockPos thisPos, Block fromBlock, BlockPos fromPos, boolean isMoving)
+	public void neighborChanged(BlockState thisState, Level level, BlockPos thisPos, Block fromBlock, BlockPos fromPos, boolean isMoving)
 	{
-		this.onNeighborUpdated(thisState, world, thisPos, world.getBlockState(fromPos), fromPos);
-		super.neighborChanged(thisState, world, thisPos, fromBlock, fromPos, isMoving);
+		this.onNeighborUpdated(thisState, level, thisPos, level.getBlockState(fromPos), fromPos);
+		super.neighborChanged(thisState, level, thisPos, fromBlock, fromPos, isMoving);
 	}
 
 	// called when a neighboring te's data changes
 	@Override
-	public void onNeighborChange(BlockState thisState, IWorldReader world, BlockPos thisPos, BlockPos neighborPos)
+	public void onNeighborChange(BlockState thisState, LevelReader level, BlockPos thisPos, BlockPos neighborPos)
 	{
-		this.onNeighborUpdated(thisState, world, thisPos, world.getBlockState(neighborPos), neighborPos);
+		this.onNeighborUpdated(thisState, level, thisPos, level.getBlockState(neighborPos), neighborPos);
 		// does nothing by default
-		super.onNeighborChange(thisState, world, thisPos, neighborPos);
+		super.onNeighborChange(thisState, level, thisPos, neighborPos);
 	}
 	
-	protected void onNeighborUpdated(BlockState thisState, IBlockReader world, BlockPos thisPos, BlockState neighborState, BlockPos neighborPos)
+	protected void onNeighborUpdated(BlockState thisState, BlockGetter level, BlockPos thisPos, BlockState neighborState, BlockPos neighborPos)
 	{
-		if (world instanceof ServerWorld)
+		if (level instanceof ServerLevel serverLevel)
 		{
-			@Nullable Direction directionToNeighbor = DirectionHelper.getDirectionToNeighborPos(thisPos, neighborPos);
+			@Nullable Direction directionToNeighbor = Direction.fromNormal(neighborPos.subtract(thisPos));
 			if (directionToNeighbor != null)
 			{
-				ServerWorld serverWorld = (ServerWorld)world;
-				this.getApertureTileEntityForFace(thisState, serverWorld,thisPos,directionToNeighbor).ifPresent(te -> {
-					te.updatePower(serverWorld, neighborPos, neighborState, directionToNeighbor);
-					te.markDirty(); // invokes onNeighborChanged on adjacent blocks, so we can propagate neighbor changes, update capabilities, etc
+				this.getApertureTileEntityForFace(thisState, serverLevel,thisPos,directionToNeighbor).ifPresent(te -> {
+					te.updatePower(serverLevel, neighborPos, neighborState, directionToNeighbor);
+					te.setChanged(); // invokes onNeighborChanged on adjacent blocks, so we can propagate neighbor changes, update capabilities, etc
 				});
 			}
 		}
 		
 	}
 	
-	public static void notifyNeighborsOfStrongSignalChange(BlockState state, World world, BlockPos pos)
+	public static void notifyNeighborsOfStrongSignalChange(BlockState state, Level world, BlockPos pos)
 	{
 		// propagate a neighbor update such that blocks two spaces away from this block get notified of neighbor changes
 		// this ensures that blocks that were receiving a strong signal conducted through a solid block are
 		// correctly updated
 		for (Direction direction : Direction.values())
 		{
-			world.notifyNeighborsOfStateChange(pos.offset(direction), state.getBlock());
+			world.updateNeighborsAt(pos.relative(direction), state.getBlock());
 		}
 	}
 	
-	public Optional<ApertureTileEntity> getApertureTileEntityForFace(BlockState thisState, ServerWorld world, BlockPos thisPos, Direction directionToNeighbor)
+	public Optional<ApertureBlockEntity> getApertureTileEntityForFace(BlockState thisState, ServerLevel world, BlockPos thisPos, Direction directionToNeighbor)
 	{
 		Direction originalFace = this.getOriginalFace(thisState, directionToNeighbor);
-		return HyperboxTileEntity.get(world, thisPos)
-			.flatMap(te -> te.getAperture(world.getServer(), originalFace));
+		return world.getBlockEntity(thisPos) instanceof HyperboxBlockEntity hyperbox
+			? hyperbox.getAperture(world.getServer(), originalFace)
+			: Optional.empty();
 	}
 	
 	public Direction getOriginalFace(BlockState thisState, Direction worldSpaceFace)
@@ -272,7 +267,7 @@ public class HyperboxBlock extends Block
 		// we need to get which original/unrotated side of the hyperbox was activated
 		// we can use the ATTACHMENT_DIRECTION to determine if we activated the "down" or "up" face
 		// if not, then we need to use ROTATION to determine whether we activated the north/east/south/west face
-		Direction downRotated = thisState.get(ATTACHMENT_DIRECTION);
+		Direction downRotated = thisState.getValue(ATTACHMENT_DIRECTION);
 		if (downRotated == worldSpaceFace)
 		{
 			return Direction.DOWN;
@@ -283,7 +278,7 @@ public class HyperboxBlock extends Block
 		}
 		else
 		{
-			int rotationIndex = thisState.get(ROTATION);
+			int rotationIndex = thisState.getValue(ROTATION);
 			// get the direction that the original "north" face is now pointing
 			Direction newNorth = RotationHelper.getOutputDirection(downRotated, rotationIndex);
 			if (newNorth == worldSpaceFace)
@@ -305,8 +300,8 @@ public class HyperboxBlock extends Block
 	// return the hyperbox's current direction in worldspace of the given unrotated face
 	public Direction getCurrentFacing(BlockState thisState, Direction originalFace)
 	{
-		Direction currentDown = thisState.get(ATTACHMENT_DIRECTION);
-		int rotation = thisState.get(ROTATION);
+		Direction currentDown = thisState.getValue(ATTACHMENT_DIRECTION);
+		int rotation = thisState.getValue(ROTATION);
 		return originalFace == Direction.DOWN
 			? currentDown
 			: originalFace == Direction.UP
@@ -314,7 +309,7 @@ public class HyperboxBlock extends Block
 				: RotationHelper.getInputDirection(currentDown, rotation, RotationHelper.getRotationIndexForHorizontal(originalFace));
 	}
 
-	public static boolean getIsNormalCube(BlockState state, IBlockReader world, BlockPos pos)
+	public static boolean getIsNormalCube(BlockState state, BlockGetter world, BlockPos pos)
 	{
 		return false;
 	}
@@ -332,13 +327,13 @@ public class HyperboxBlock extends Block
 	{
 		if (state.hasProperty(ATTACHMENT_DIRECTION) && state.hasProperty(ROTATION))
 		{
-			Direction attachmentDirection = state.get(ATTACHMENT_DIRECTION);
-			int rotationIndex = state.get(ROTATION);
+			Direction attachmentDirection = state.getValue(ATTACHMENT_DIRECTION);
+			int rotationIndex = state.getValue(ROTATION);
 
 			Direction newAttachmentDirection = rotation.rotate(attachmentDirection);
 			int newRotationIndex = RotationHelper.getRotatedRotation(attachmentDirection, rotationIndex, rotation);
 
-			return state.with(ATTACHMENT_DIRECTION, newAttachmentDirection).with(ROTATION, newRotationIndex);
+			return state.setValue(ATTACHMENT_DIRECTION, newAttachmentDirection).setValue(ROTATION, newRotationIndex);
 		}
 		else
 		{
@@ -359,13 +354,13 @@ public class HyperboxBlock extends Block
 	{
 		if (state.hasProperty(ATTACHMENT_DIRECTION) && state.hasProperty(ROTATION))
 		{
-			Direction attachmentDirection = state.get(ATTACHMENT_DIRECTION);
-			int rotationIndex = state.get(ROTATION);
+			Direction attachmentDirection = state.getValue(ATTACHMENT_DIRECTION);
+			int rotationIndex = state.getValue(ROTATION);
 
 			Direction newAttachmentDirection = mirror.mirror(attachmentDirection);
 			int newRotationIndex = RotationHelper.getMirroredRotation(attachmentDirection, rotationIndex, mirror);
 
-			return state.with(ATTACHMENT_DIRECTION, newAttachmentDirection).with(ROTATION, newRotationIndex);
+			return state.setValue(ATTACHMENT_DIRECTION, newAttachmentDirection).setValue(ROTATION, newRotationIndex);
 		}
 		else
 		{

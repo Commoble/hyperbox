@@ -7,33 +7,43 @@ import java.util.UUID;
 import javax.annotation.Nullable;
 
 import commoble.hyperbox.Hyperbox;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.entity.player.ServerPlayerEntity;
-import net.minecraft.nbt.CompoundNBT;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.util.RegistryKey;
-import net.minecraft.util.math.vector.Vector3d;
-import net.minecraft.world.World;
-import net.minecraft.world.server.ServerWorld;
-import net.minecraft.world.storage.WorldSavedData;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.world.phys.Vec3;
+import net.minecraft.world.level.Level;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.level.saveddata.SavedData;
 
 // we can't teleport players from onBlockActivated as there are assumptions
 // in the right click processing that assume a player's world does not change
 // so what we'll do is schedule a teleport to occur at the end of the world tick
-public class DelayedTeleportData extends WorldSavedData
+public class DelayedTeleportData extends SavedData
 {
 	public static final String DATA_KEY = Hyperbox.MODID + ":delayed_events";
 	
 	private List<TeleportEntry> delayedTeleports = new ArrayList<>();
-
-	public DelayedTeleportData()
+	
+	public static DelayedTeleportData getOrCreate(ServerLevel level)
 	{
-		super(DATA_KEY);
+		return level.getDataStorage().computeIfAbsent(DelayedTeleportData::load, DelayedTeleportData::create, DATA_KEY);
 	}
 	
-	public static DelayedTeleportData getOrCreate(ServerWorld world)
+	public static DelayedTeleportData load(CompoundTag nbt)
 	{
-		return world.getSavedData().getOrCreate(DelayedTeleportData::new, DATA_KEY);
+		// NOOP, data is transient
+		return DelayedTeleportData.create();
+	}
+	
+	public static DelayedTeleportData create()
+	{
+		return new DelayedTeleportData();
+	}
+
+	protected DelayedTeleportData()
+	{
 	}
 	
 	/**
@@ -42,56 +52,39 @@ public class DelayedTeleportData extends WorldSavedData
 	 * 
 	 * Does *not* create dynamic worlds that don't already exist,
 	 * So dynamic worlds should be created by the thing that schedules the tick, if possible
-	 * @param world The world that is being ticked and contains a data instance
+	 * @param level The world that is being ticked and contains a data instance
 	 */
-	public static void tick(ServerWorld world)
+	public static void tick(ServerLevel level)
 	{
-		MinecraftServer server = world.getServer();
-		DelayedTeleportData eventData = getOrCreate(world);
+		MinecraftServer server = level.getServer();
+		DelayedTeleportData eventData = getOrCreate(level);
 		
 		// handle teleports
 		List<TeleportEntry> teleports = eventData.delayedTeleports;
 		eventData.delayedTeleports = new ArrayList<>();
 		for (TeleportEntry entry : teleports)
 		{
-			@Nullable ServerPlayerEntity player = server.getPlayerList().getPlayerByUUID(entry.playerUUID);
-			@Nullable ServerWorld targetWorld = server.getWorld(entry.targetWorld);
-			if (player != null && targetWorld != null && player.world == world)
+			@Nullable ServerPlayer player = server.getPlayerList().getPlayer(entry.playerUUID);
+			@Nullable ServerLevel targetWorld = server.getLevel(entry.targetLevel);
+			if (player != null && targetWorld != null && player.level == level)
 			{
-				DimensionHelper.sendPlayerToDimension(player, targetWorld, entry.targetVec);
+				TeleportHelper.sendPlayerToDimension(player, targetWorld, entry.targetVec);
 			}
 		}
 	}
 	
-	public void schedulePlayerTeleport(PlayerEntity player, RegistryKey<World> destination, Vector3d targetVec)
+	public void schedulePlayerTeleport(Player player, ResourceKey<Level> destination, Vec3 targetVec)
 	{
-		this.delayedTeleports.add(new TeleportEntry(PlayerEntity.getUUID(player.getGameProfile()), destination, targetVec));
+		this.delayedTeleports.add(new TeleportEntry(Player.createPlayerUUID(player.getGameProfile()), destination, targetVec));
 	}
 
 	@Override
-	public void read(CompoundNBT nbt)
-	{
-		// noop, data is transient
-		// we're only using this so we can associate teleports with specific worlds (instead of saving data statically)
-	}
-
-	@Override
-	public CompoundNBT write(CompoundNBT compound)
+	public CompoundTag save(CompoundTag compound)
 	{
 		return compound;
 	}
 
-	static class TeleportEntry
+	private static record TeleportEntry(UUID playerUUID, ResourceKey<Level> targetLevel, Vec3 targetVec)
 	{
-		final UUID playerUUID;
-		final RegistryKey<World> targetWorld;
-		final Vector3d targetVec;
-		
-		public TeleportEntry(UUID playerUUID, RegistryKey<World> targetWorld, Vector3d targetVec)
-		{
-			this.playerUUID = playerUUID;
-			this.targetWorld = targetWorld;
-			this.targetVec = targetVec;
-		}
 	}
 }
