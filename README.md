@@ -24,7 +24,7 @@ A client config is available in `<your minecraft root folder>/config/hyperbox-cl
 	nameplate_render_distance = -1.0
 ```
 
-A server config is also available in `<your save folder>/serverconfig/hyperbox-server.toml`; each save folder has its own serverconfig, and these files are generated the first time a server starts or a singleplayer save is created. The default serverconfig file is as follows:
+A common config is also available in `<your minecraft root folder>/config/hyperbox-common.toml`:
 
 ```
 [world_management]
