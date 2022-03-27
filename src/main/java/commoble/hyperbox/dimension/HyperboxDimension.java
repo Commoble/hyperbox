@@ -9,6 +9,7 @@ import commoble.hyperbox.Hyperbox;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Holder;
 import net.minecraft.core.Registry;
 import net.minecraft.world.level.dimension.LevelStem;
 import net.minecraft.world.level.dimension.DimensionType;
@@ -19,20 +20,20 @@ public class HyperboxDimension
 {	
 	public static LevelStem createDimension(MinecraftServer server)
 	{
-		return new LevelStem(() -> getDimensionType(server), new HyperboxChunkGenerator(server));
+		return new LevelStem(getDimensionTypeHolder(server), new HyperboxChunkGenerator(server));
+	}
+	
+	public static Holder<DimensionType> getDimensionTypeHolder(MinecraftServer server)
+	{
+		return server.registryAccess() // get dynamic registries
+			.registryOrThrow(Registry.DIMENSION_TYPE_REGISTRY)
+			.getHolderOrThrow(Hyperbox.DIMENSION_TYPE_KEY);
 	}
 	
 	public static DimensionType getDimensionType(MinecraftServer server)
 	{
-		return server.registryAccess() // get dynamic registries
-			.registryOrThrow(Registry.DIMENSION_TYPE_REGISTRY)
-			.getOrThrow(Hyperbox.DIMENSION_TYPE_KEY);
+		return getDimensionTypeHolder(server).value();
 	}
-	
-//	public static boolean isHyperboxDimension(ResourceKey<Level> key)
-//	{
-//		return key.location().getNamespace().equals(Hyperbox.MODID);
-//	}
 	
 	/**
 	 * Returns whether a given world is reachable from another given world using hyperbox parenting.

@@ -1,23 +1,33 @@
 package commoble.hyperbox.dimension;
 
+import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.function.Consumer;
+import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
 
+import com.mojang.datafixers.util.Pair;
 import com.mojang.serialization.Codec;
+import com.mojang.serialization.codecs.RecordCodecBuilder;
 
 import commoble.hyperbox.Hyperbox;
 import commoble.hyperbox.blocks.ApertureBlock;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.core.Holder;
+import net.minecraft.core.HolderSet;
 import net.minecraft.core.Registry;
 import net.minecraft.core.RegistryAccess;
-import net.minecraft.resources.RegistryLookupCodec;
+import net.minecraft.resources.RegistryOps;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.WorldGenRegion;
+import net.minecraft.util.random.WeightedRandomList;
+import net.minecraft.world.entity.MobCategory;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.LevelHeightAccessor;
 import net.minecraft.world.level.NoiseColumn;
@@ -25,17 +35,21 @@ import net.minecraft.world.level.StructureFeatureManager;
 import net.minecraft.world.level.WorldGenLevel;
 import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.biome.BiomeManager;
+import net.minecraft.world.level.biome.BiomeSource;
 import net.minecraft.world.level.biome.Climate;
 import net.minecraft.world.level.biome.FixedBiomeSource;
+import net.minecraft.world.level.biome.MobSpawnSettings.SpawnerData;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.ChunkAccess;
 import net.minecraft.world.level.chunk.ChunkGenerator;
 import net.minecraft.world.level.levelgen.GenerationStep;
 import net.minecraft.world.level.levelgen.Heightmap.Types;
-import net.minecraft.world.level.levelgen.StructureSettings;
 import net.minecraft.world.level.levelgen.blending.Blender;
+import net.minecraft.world.level.levelgen.feature.ConfiguredStructureFeature;
 import net.minecraft.world.level.levelgen.feature.StructureFeature;
+import net.minecraft.world.level.levelgen.structure.StructureSet;
+import net.minecraft.world.level.levelgen.structure.placement.ConcentricRingsStructurePlacement;
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructureManager;
 
 public class HyperboxChunkGenerator extends ChunkGenerator
@@ -51,12 +65,13 @@ public class HyperboxChunkGenerator extends ChunkGenerator
 	// don't want to spawn with head in the bedrock ceiling
 	public static final BlockPos MAX_SPAWN_CORNER = HyperboxChunkGenerator.CORNER.offset(13,12,13);
 	
-	public static final Codec<HyperboxChunkGenerator> CODEC =
+	public static final Codec<HyperboxChunkGenerator> CODEC = RecordCodecBuilder.create(builder -> builder.group(
 		// the registry lookup doesn't actually serialize, so we don't need a field for it
-		RegistryLookupCodec.create(Registry.BIOME_REGISTRY)
-			.xmap(HyperboxChunkGenerator::new,HyperboxChunkGenerator::getBiomeRegistry)
-			.codec();
+			RegistryOps.retrieveRegistry(Registry.STRUCTURE_SET_REGISTRY).forGetter(HyperboxChunkGenerator::getStructureSetRegistry),
+			RegistryOps.retrieveRegistry(Registry.BIOME_REGISTRY).forGetter(HyperboxChunkGenerator::getBiomeRegistry)
+		).apply(builder, HyperboxChunkGenerator::new));
 
+	private final Registry<StructureSet> structureSets;	public Registry<StructureSet> getStructureSetRegistry() { return this.structureSets; }
 	private final Registry<Biome> biomes;	public Registry<Biome> getBiomeRegistry() { return this.biomes; }
 	
 	// hardcoding this for now, may reconsider later
@@ -65,14 +80,17 @@ public class HyperboxChunkGenerator extends ChunkGenerator
 	// create chunk generator at runtime when dynamic dimension is created
 	public HyperboxChunkGenerator(MinecraftServer server)
 	{
-		this(server.registryAccess() // get dynamic registry
-			.registryOrThrow(Registry.BIOME_REGISTRY));
+		// get dynamic registry
+		this(
+			server.registryAccess().registryOrThrow(Registry.STRUCTURE_SET_REGISTRY),
+			server.registryAccess().registryOrThrow(Registry.BIOME_REGISTRY));
 	}
 
 	// create chunk generator when dimension is loaded from the dimension registry on server init
-	public HyperboxChunkGenerator(Registry<Biome> biomes)
+	public HyperboxChunkGenerator(Registry<StructureSet> structureSets, Registry<Biome> biomes)
 	{
-		super(new FixedBiomeSource(biomes.getOrThrow(Hyperbox.BIOME_KEY)), new StructureSettings(false));
+		super(structureSets, Optional.empty(), new FixedBiomeSource(biomes.getHolderOrThrow(Hyperbox.BIOME_KEY)));
+		this.structureSets = structureSets;
 		this.biomes = biomes;
 	}
 
@@ -93,7 +111,7 @@ public class HyperboxChunkGenerator extends ChunkGenerator
 	@Override
 	public Climate.Sampler climateSampler()
 	{	// no climate -- same as debug chunk generator
-		return (x, y, z) -> Climate.target(0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F);
+		return Climate.empty();
 	}
 	
 	// apply carvers
@@ -227,6 +245,12 @@ public class HyperboxChunkGenerator extends ChunkGenerator
 		
 		return new NoiseColumn(0, new BlockState[0]);
 	}
+
+	@Override
+	public void addDebugScreenInfo(List<String> stringsToRender, BlockPos pos)
+	{
+		// no info to add
+	}
 	
 	// let's make sure some of the default chunk generator methods aren't doing
 	// anything we don't want them to either
@@ -234,7 +258,7 @@ public class HyperboxChunkGenerator extends ChunkGenerator
 	// get structure position
 	@Nullable
 	@Override
-	public BlockPos findNearestMapFeature(ServerLevel world, StructureFeature<?> structure, BlockPos start, int radius, boolean skipExistingChunks)
+	public Pair<BlockPos, Holder<ConfiguredStructureFeature<?, ?>>> findNearestMapFeature(ServerLevel level, HolderSet<ConfiguredStructureFeature<?, ?>> structures, BlockPos pos, int range, boolean skipKnownStructures)
 	{
 		return null;
 	}
@@ -264,12 +288,5 @@ public class HyperboxChunkGenerator extends ChunkGenerator
 	public void createReferences(WorldGenLevel world, StructureFeatureManager structures, ChunkAccess chunk)
 	{
 		// no structures
-	}
-	
-	// has stronghold
-	@Override
-	public boolean hasStronghold(ChunkPos chunkPos)
-	{
-		return false;
-	}
+	}	
 }

@@ -1,3 +1,6 @@
+## 2.0.0.1
+* Updated to minecraft 1.18.2+ (now requires infiniverse 1.18.2-1.0.0.2+)
+
 ## 2.0.0.0
 * Updated to minecraft 1.18.1+
 * Hyperbox now requires the Infiniverse mod (1.0.0.1 or higher)

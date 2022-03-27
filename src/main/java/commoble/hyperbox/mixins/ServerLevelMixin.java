@@ -12,6 +12,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import commoble.hyperbox.MixinCallbacks;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.util.profiling.ProfilerFiller;
+import net.minecraft.core.Holder;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.sounds.SoundEvent;
@@ -24,7 +25,7 @@ import net.minecraft.world.level.storage.WritableLevelData;
 public abstract class ServerLevelMixin extends Level
 {
 
-	private ServerLevelMixin(WritableLevelData worldInfo, ResourceKey<Level> dimension, DimensionType dimensionType, Supplier<ProfilerFiller> profiler, boolean isRemote,
+	private ServerLevelMixin(WritableLevelData worldInfo, ResourceKey<Level> dimension, Holder<DimensionType> dimensionType, Supplier<ProfilerFiller> profiler, boolean isRemote,
 		boolean isDebug, long seed)
 	{
 		super(worldInfo, dimension, dimensionType, profiler, isRemote, isDebug, seed);
