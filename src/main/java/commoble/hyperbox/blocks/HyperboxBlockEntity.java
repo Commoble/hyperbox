@@ -173,20 +173,23 @@ public class HyperboxBlockEntity extends BlockEntity implements Nameable
 	}
 
 	@Override
-	public <T> LazyOptional<T> getCapability(Capability<T> cap, Direction worldSpaceFace)
+	public <T> LazyOptional<T> getCapability(Capability<T> cap, @Nullable Direction worldSpaceFace)
 	{
-		BlockState thisState = this.getBlockState();
-		Block thisBlock = thisState.getBlock();
-		// delegate to the capability of the block facing the linked aperture in the hyperspace cube
-		if (thisBlock instanceof HyperboxBlock hyperboxBlock && this.level instanceof ServerLevel serverLevel)
+		if (worldSpaceFace != null)
 		{
-			ServerLevel targetLevel = this.getOrCreateLevel(serverLevel.getServer());
-			BlockPos targetPos = hyperboxBlock.getPosAdjacentToAperture(this.getBlockState(), worldSpaceFace);
-			BlockEntity delegateBlockEntity = targetLevel.getBlockEntity(targetPos);
-			if (delegateBlockEntity != null)
+			BlockState thisState = this.getBlockState();
+			Block thisBlock = thisState.getBlock();
+			// delegate to the capability of the block facing the linked aperture in the hyperspace cube
+			if (thisBlock instanceof HyperboxBlock hyperboxBlock && this.level instanceof ServerLevel serverLevel)
 			{
-				Direction rotatedDirection = hyperboxBlock.getOriginalFace(thisState, worldSpaceFace);
-				return delegateBlockEntity.getCapability(cap, rotatedDirection);
+				ServerLevel targetLevel = this.getOrCreateLevel(serverLevel.getServer());
+				BlockPos targetPos = hyperboxBlock.getPosAdjacentToAperture(this.getBlockState(), worldSpaceFace);
+				BlockEntity delegateBlockEntity = targetLevel.getBlockEntity(targetPos);
+				if (delegateBlockEntity != null)
+				{
+					Direction rotatedDirection = hyperboxBlock.getOriginalFace(thisState, worldSpaceFace);
+					return delegateBlockEntity.getCapability(cap, rotatedDirection);
+				}
 			}
 		}
 		return super.getCapability(cap, worldSpaceFace);

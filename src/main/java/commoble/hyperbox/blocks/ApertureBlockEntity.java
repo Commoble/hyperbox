@@ -1,5 +1,7 @@
 package commoble.hyperbox.blocks;
 
+import javax.annotation.Nullable;
+
 import commoble.hyperbox.Hyperbox;
 import commoble.hyperbox.dimension.HyperboxWorldData;
 import net.minecraft.core.BlockPos;
@@ -41,9 +43,9 @@ public class ApertureBlockEntity extends BlockEntity
 	}
 
 	@Override
-	public <T> LazyOptional<T> getCapability(Capability<T> cap, Direction side)
+	public <T> LazyOptional<T> getCapability(Capability<T> cap, @Nullable Direction side)
 	{
-		if (this.level instanceof ServerLevel serverLevel)
+		if (side != null && this.level instanceof ServerLevel serverLevel)
 		{
 			MinecraftServer server = serverLevel.getServer();
 			HyperboxWorldData data = HyperboxWorldData.getOrCreate(serverLevel);
