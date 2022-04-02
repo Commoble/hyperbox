@@ -64,15 +64,19 @@ public class HyperboxChunkGenerator extends ChunkGenerator
 	public static final BlockPos MIN_SPAWN_CORNER = HyperboxChunkGenerator.CORNER.offset(1,1,1);
 	// don't want to spawn with head in the bedrock ceiling
 	public static final BlockPos MAX_SPAWN_CORNER = HyperboxChunkGenerator.CORNER.offset(13,12,13);
+
+	private final Registry<StructureSet> structureSets;	public Registry<StructureSet> getStructureSetRegistry() { return this.structureSets; }
+	private final Registry<Biome> biomes;	public Registry<Biome> getBiomeRegistry() { return this.biomes; }
 	
-	public static final Codec<HyperboxChunkGenerator> CODEC = RecordCodecBuilder.create(builder -> builder.group(
+	/** get from Hyperbox.INSTANCE.hyperboxChunkGeneratorCodec.get(); **/
+	public static Codec<HyperboxChunkGenerator> makeCodec()
+	{
+		return RecordCodecBuilder.create(builder -> builder.group(
 		// the registry lookup doesn't actually serialize, so we don't need a field for it
 			RegistryOps.retrieveRegistry(Registry.STRUCTURE_SET_REGISTRY).forGetter(HyperboxChunkGenerator::getStructureSetRegistry),
 			RegistryOps.retrieveRegistry(Registry.BIOME_REGISTRY).forGetter(HyperboxChunkGenerator::getBiomeRegistry)
 		).apply(builder, HyperboxChunkGenerator::new));
-
-	private final Registry<StructureSet> structureSets;	public Registry<StructureSet> getStructureSetRegistry() { return this.structureSets; }
-	private final Registry<Biome> biomes;	public Registry<Biome> getBiomeRegistry() { return this.biomes; }
+	}
 	
 	// hardcoding this for now, may reconsider later
 	public int getHeight() { return 15; }
@@ -98,7 +102,7 @@ public class HyperboxChunkGenerator extends ChunkGenerator
 	@Override
 	protected Codec<? extends ChunkGenerator> codec()
 	{
-		return CODEC;
+		return Hyperbox.INSTANCE.hyperboxChunkGeneratorCodec.get();
 	}
 
 	// get chunk generator but with seed

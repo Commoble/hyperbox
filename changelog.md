@@ -1,5 +1,6 @@
 ## 2.0.0.2
 * Fix NPE crash from attempting to get sideless capabilities from aperture and hyperbox blockentities
+* Now requires forge 40.0.35 or higher
 
 ## 2.0.0.1
 * Updated to minecraft 1.18.2+ (now requires infiniverse 1.18.2-1.0.0.2+)

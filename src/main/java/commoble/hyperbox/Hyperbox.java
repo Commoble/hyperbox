@@ -4,19 +4,20 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import com.google.common.collect.Lists;
+import com.mojang.serialization.Codec;
 
 import commoble.hyperbox.blocks.ApertureBlock;
 import commoble.hyperbox.blocks.ApertureBlockEntity;
 import commoble.hyperbox.blocks.HyperboxBlock;
-import commoble.hyperbox.blocks.HyperboxBlockItem;
 import commoble.hyperbox.blocks.HyperboxBlockEntity;
+import commoble.hyperbox.blocks.HyperboxBlockItem;
 import commoble.hyperbox.client.ClientProxy;
 import commoble.hyperbox.dimension.DelayedTeleportData;
-import commoble.hyperbox.dimension.TeleportHelper;
 import commoble.hyperbox.dimension.HyperboxChunkGenerator;
 import commoble.hyperbox.dimension.HyperboxDimension;
 import commoble.hyperbox.dimension.HyperboxWorldData;
 import commoble.hyperbox.dimension.ReturnPointCapability;
+import commoble.hyperbox.dimension.TeleportHelper;
 import commoble.infiniverse.api.InfiniverseAPI;
 import commoble.infiniverse.api.UnregisterDimensionEvent;
 import net.minecraft.core.BlockPos;
@@ -38,6 +39,7 @@ import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockBehaviour;
+import net.minecraft.world.level.chunk.ChunkGenerator;
 import net.minecraft.world.level.dimension.DimensionType;
 import net.minecraft.world.level.dimension.LevelStem;
 import net.minecraftforge.api.distmarker.Dist;
@@ -90,6 +92,7 @@ public class Hyperbox
 	public final RegistryObject<BlockItem> hyperboxItem;
 	public final RegistryObject<BlockEntityType<HyperboxBlockEntity>> hyperboxBlockEntityType;
 	public final RegistryObject<BlockEntityType<ApertureBlockEntity>> apertureBlockEntityType;
+	public final RegistryObject<Codec<HyperboxChunkGenerator>> hyperboxChunkGeneratorCodec;
 	
 	public Hyperbox()
 	{
@@ -104,6 +107,7 @@ public class Hyperbox
 		DeferredRegister<Block> blocks = makeRegister(modBus, ForgeRegistries.BLOCKS);
 		DeferredRegister<Item> items = makeRegister(modBus, ForgeRegistries.ITEMS);
 		DeferredRegister<BlockEntityType<?>> tileEntities = makeRegister(modBus, ForgeRegistries.BLOCK_ENTITIES);
+		DeferredRegister<Codec<? extends ChunkGenerator>> chunkGeneratorCodecs = makeVanillaRegister(modBus, Registry.CHUNK_GENERATOR_REGISTRY);
 		
 		this.hyperboxBlock = blocks.register(Names.HYPERBOX, () -> new HyperboxBlock(BlockBehaviour.Properties.copy(Blocks.PURPUR_BLOCK).strength(2F, 1200F).isRedstoneConductor(HyperboxBlock::getIsNormalCube)));
 		this.hyperboxPreviewBlock = blocks.register(Names.HYPERBOX_PREVIEW, () -> new HyperboxBlock(BlockBehaviour.Properties.copy(Blocks.PURPUR_BLOCK).strength(2F, 1200F).isRedstoneConductor(HyperboxBlock::getIsNormalCube)));
@@ -113,9 +117,10 @@ public class Hyperbox
 		this.apertureBlock = blocks.register(Names.APERTURE, () -> new ApertureBlock(BlockBehaviour.Properties.copy(Blocks.BARRIER).lightLevel(state -> 6).isRedstoneConductor(HyperboxBlock::getIsNormalCube)));
 		this.apertureBlockEntityType = tileEntities.register(Names.APERTURE, () -> BlockEntityType.Builder.of(ApertureBlockEntity::create, this.apertureBlock.get()).build(null));
 		
+		this.hyperboxChunkGeneratorCodec = chunkGeneratorCodecs.register(Names.HYPERBOX, HyperboxChunkGenerator::makeCodec);
+		
 		// subscribe event handlers
 		modBus.addListener(this::onRegisterCapabilities);
-		modBus.addListener(this::onCommonSetup);
 		forgeBus.addListener(this::onUnregisterDimension);
 		forgeBus.addListener(EventPriority.HIGH, this::onHighPriorityWorldTick);
 		forgeBus.addGenericListener(Entity.class, this::onAttachEntityCapabilities);
@@ -130,18 +135,6 @@ public class Hyperbox
 	private void onRegisterCapabilities(RegisterCapabilitiesEvent event)
 	{
 		event.register(ReturnPointCapability.class);
-	}
-	
-	private void onCommonSetup(FMLCommonSetupEvent event)
-	{
-		event.enqueueWork(this::afterCommonSetup);
-	}
-	
-	// run on the main thread after the parallel stuff
-	private void afterCommonSetup()
-	{
-		// register things to vanilla Registries for which forge registries don't exist
-		registerVanilla(Registry.CHUNK_GENERATOR, Names.HYPERBOX, HyperboxChunkGenerator.CODEC);
 	}
 	
 	private void onAttachEntityCapabilities(AttachCapabilitiesEvent<Entity> event)
@@ -268,17 +261,17 @@ public class Hyperbox
 		return parentLevel.hasChunkAt(parentPos);
 	}
 	
-	// helper methods for registering things
-	
-	private static <T> T registerVanilla(Registry<T> registry, String name, T thing)
-	{
-		return Registry.register(registry, new ResourceLocation(MODID, name), thing);
-	}
-	
 	// create and subscribe a forge DeferredRegister
 	private static <T extends IForgeRegistryEntry<T>> DeferredRegister<T> makeRegister(IEventBus modBus, IForgeRegistry<T> registry)
 	{
 		DeferredRegister<T> register = DeferredRegister.create(registry, MODID);
+		register.register(modBus);
+		return register;
+	}
+	
+	private static <T> DeferredRegister<T> makeVanillaRegister(IEventBus modBus, ResourceKey<Registry<T>> registryKey)
+	{
+		DeferredRegister<T> register = DeferredRegister.create(registryKey, MODID);
 		register.register(modBus);
 		return register;
 	}
