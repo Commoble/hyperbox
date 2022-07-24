@@ -4,16 +4,11 @@ import commoble.hyperbox.ConfigHelper;
 import commoble.hyperbox.Hyperbox;
 import commoble.hyperbox.RotationHelper;
 import commoble.hyperbox.blocks.HyperboxBlock;
-import it.unimi.dsi.fastutil.objects.Object2ObjectMap;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.color.block.BlockColors;
+import net.minecraft.client.gui.screens.MenuScreens;
 import net.minecraft.client.player.LocalPlayer;
-import net.minecraft.client.renderer.DimensionSpecialEffects;
-import net.minecraft.client.renderer.ItemBlockRenderTypes;
-import net.minecraft.client.renderer.RenderType;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.Item;
@@ -22,9 +17,10 @@ import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
-import net.minecraftforge.client.event.ColorHandlerEvent;
-import net.minecraftforge.client.event.DrawSelectionEvent;
 import net.minecraftforge.client.event.EntityRenderersEvent.RegisterRenderers;
+import net.minecraftforge.client.event.RegisterColorHandlersEvent;
+import net.minecraftforge.client.event.RegisterDimensionSpecialEffectsEvent;
+import net.minecraftforge.client.event.RenderHighlightEvent;
 import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.fml.config.ModConfig;
 import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
@@ -39,46 +35,47 @@ public class ClientProxy
 		clientConfig = ConfigHelper.register(ModConfig.Type.CLIENT, ClientConfig::new);
 
 		modBus.addListener(ClientProxy::onClientSetup);
+		modBus.addListener(ClientProxy::onRegisterDimensionSpecialEffects);
 		modBus.addListener(ClientProxy::onRegisterRenderers);
 		modBus.addListener(ClientProxy::onRegisterBlockColors);
 		modBus.addListener(ClientProxy::onRegisterItemColors);
 		forgeBus.addListener(ClientProxy::onHighlightBlock);
 	}
-
+	
 	private static void onClientSetup(FMLClientSetupEvent event)
 	{
 		event.enqueueWork(ClientProxy::afterClientSetup);
+	}
+	
+	// do non-threadsafe stuff on main thread (client setup is off-thread)
+	private static void afterClientSetup()
+	{
+		MenuScreens.register(Hyperbox.INSTANCE.hyperboxMenuType.get(), HyperboxScreen::new);
 	}
 	
 	private static void onRegisterRenderers(RegisterRenderers event)
 	{
 		event.registerBlockEntityRenderer(Hyperbox.INSTANCE.hyperboxBlockEntityType.get(), HyperboxBlockEntityRenderer::new);
 	}
-
-	private static void afterClientSetup()
+	
+	private static void onRegisterDimensionSpecialEffects(RegisterDimensionSpecialEffectsEvent event)
 	{
-		Object2ObjectMap<ResourceLocation, DimensionSpecialEffects> renderInfoMap = DimensionSpecialEffects.EFFECTS;
-		renderInfoMap.put(Hyperbox.HYPERBOX_ID, new HyperboxRenderInfo());
-		
-		ItemBlockRenderTypes.setRenderLayer(Hyperbox.INSTANCE.hyperboxBlock.get(), RenderType.cutout());
-		ItemBlockRenderTypes.setRenderLayer(Hyperbox.INSTANCE.hyperboxPreviewBlock.get(), RenderType.cutout());
-		ItemBlockRenderTypes.setRenderLayer(Hyperbox.INSTANCE.apertureBlock.get(), RenderType.cutout());
+		event.register(Hyperbox.HYPERBOX_ID, new HyperboxRenderInfo());
 	}
 	
-	private static void onRegisterBlockColors(ColorHandlerEvent.Block event)
+	private static void onRegisterBlockColors(RegisterColorHandlersEvent.Block event)
 	{
-		BlockColors colors = event.getBlockColors();
-		colors.register(ColorHandlers::getHyperboxBlockColor, Hyperbox.INSTANCE.hyperboxBlock.get());
-		colors.register(ColorHandlers::getHyperboxPreviewBlockColor, Hyperbox.INSTANCE.hyperboxPreviewBlock.get());
-		colors.register(ColorHandlers::getApertureBlockColor, Hyperbox.INSTANCE.apertureBlock.get());
+		event.register(ColorHandlers::getHyperboxBlockColor, Hyperbox.INSTANCE.hyperboxBlock.get());
+		event.register(ColorHandlers::getHyperboxPreviewBlockColor, Hyperbox.INSTANCE.hyperboxPreviewBlock.get());
+		event.register(ColorHandlers::getApertureBlockColor, Hyperbox.INSTANCE.apertureBlock.get());
 	}
 	
-	private static void onRegisterItemColors(ColorHandlerEvent.Item event)
+	private static void onRegisterItemColors(RegisterColorHandlersEvent.Item event)
 	{
-		event.getItemColors().register(ColorHandlers::getHyperboxItemColor, Hyperbox.INSTANCE.hyperboxItem.get());
+		event.register(ColorHandlers::getHyperboxItemColor, Hyperbox.INSTANCE.hyperboxItem.get());
 	}
 	
-	private static void onHighlightBlock(DrawSelectionEvent.HighlightBlock event)
+	private static void onHighlightBlock(RenderHighlightEvent.Block event)
 	{
 		if (clientConfig.showPlacementPreview.get())
 		{

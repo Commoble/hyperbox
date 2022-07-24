@@ -13,6 +13,7 @@ import commoble.hyperbox.dimension.ReturnPointCapability;
 import commoble.hyperbox.dimension.SpawnPointHelper;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -39,6 +40,7 @@ import net.minecraft.world.level.block.state.properties.IntegerProperty;
 import net.minecraft.world.level.dimension.DimensionType;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
+import net.minecraftforge.network.NetworkHooks;
 
 public class HyperboxBlock extends Block implements EntityBlock
 {	
@@ -97,30 +99,10 @@ public class HyperboxBlock extends Block implements EntityBlock
 	@Deprecated
 	public InteractionResult use(BlockState state, Level level, BlockPos pos, Player player, InteractionHand hand, BlockHitResult hit)
 	{
-		if (player instanceof ServerPlayer serverPlayer)
+		if (player instanceof ServerPlayer serverPlayer
+			&& level.getBlockEntity(pos) instanceof HyperboxBlockEntity hyperbox)
 		{
-			MinecraftServer server = serverPlayer.server;
-			Direction faceActivated = hit.getDirection();
-			
-			DimensionType hyperboxDimensionType = HyperboxDimension.getDimensionType(server);
-			if (hyperboxDimensionType != level.dimensionType())
-			{
-				serverPlayer.getCapability(ReturnPointCapability.INSTANCE).ifPresent(cap ->{
-					cap.setReturnPoint(level.dimension(), pos);
-				});
-			}
-			
-			if (level.getBlockEntity(pos) instanceof HyperboxBlockEntity te)
-			{
-				ServerLevel targetWorld = te.getOrCreateLevel(server);
-				BlockPos posAdjacentToAperture = this.getPosAdjacentToAperture(state, faceActivated);
-				BlockPos spawnPoint = SpawnPointHelper.getBestSpawnPosition(
-					targetWorld,
-					posAdjacentToAperture,
-					HyperboxChunkGenerator.MIN_SPAWN_CORNER,
-					HyperboxChunkGenerator.MAX_SPAWN_CORNER);
-				DelayedTeleportData.getOrCreate(serverPlayer.getLevel()).schedulePlayerTeleport(serverPlayer, targetWorld.dimension(), Vec3.atCenterOf(spawnPoint));
-			}
+			hyperbox.teleportPlayerOrOpenMenu(serverPlayer, hit.getDirection());
 		}
 		
 		return InteractionResult.SUCCESS;
@@ -147,11 +129,10 @@ public class HyperboxBlock extends Block implements EntityBlock
 				{
 					hyperbox.setName(stack.getHoverName());
 				}
-				if (!hyperbox.getLevelKey().isPresent())
+				if (hyperbox.getLevelKey().isPresent())
 				{
-					hyperbox.createAndSetNewLevelKey();
+					hyperbox.updateDimensionAfterPlacingBlock();
 				}
-				hyperbox.afterBlockPlaced();
 			}
 		}
 	}

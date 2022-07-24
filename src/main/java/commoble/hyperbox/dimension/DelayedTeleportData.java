@@ -75,7 +75,7 @@ public class DelayedTeleportData extends SavedData
 	
 	public void schedulePlayerTeleport(Player player, ResourceKey<Level> destination, Vec3 targetVec)
 	{
-		this.delayedTeleports.add(new TeleportEntry(Player.createPlayerUUID(player.getGameProfile()), destination, targetVec));
+		this.delayedTeleports.add(new TeleportEntry(player.getGameProfile().getId(), destination, targetVec));
 	}
 
 	@Override

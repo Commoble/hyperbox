@@ -61,8 +61,9 @@ public class HyperboxBlockEntityRenderer implements BlockEntityRenderer<Hyperbox
 		float backgroundOpacity = mc.options.getBackgroundOpacity(0.25F);
 		int alpha = (int) (backgroundOpacity * 255.0F) << 24;
 		float textOffset = -fontRenderer.width(displayNameIn) / 2;
-		fontRenderer.drawInBatch(displayNameIn, textOffset, 0F, 553648127, false, matrix4f, bufferIn, false, alpha, packedLightIn);
-		fontRenderer.drawInBatch(displayNameIn, textOffset, 0F, -1, false, matrix4f, bufferIn, false, 0, packedLightIn);
+		bufferIn = Minecraft.getInstance().renderBuffers().outlineBufferSource();
+		fontRenderer.drawInBatch(displayNameIn, textOffset, 0F, 553648127, false, matrix4f, bufferIn, false, alpha, 0xFFFFFF);
+		fontRenderer.drawInBatch(displayNameIn, textOffset, 0F, -1, false, matrix4f, bufferIn, false, 0, 0xFFFFFF);
 		
 		matrixStackIn.popPose();
 	}

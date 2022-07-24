@@ -38,13 +38,14 @@ public class MixinCallbacks
 	
 	public static void onIOWorkerConstruction(Path path, boolean sync, Consumer<RegionFileStorage> cacheConsumer)
 	{
-		if (path.toString().contains("generated_hyperbox"))
+		String s = path.toString();
+		if (s.contains("dimensions/hyperbox") || s.contains("dimensions\\hyperbox"))
 		{
 			cacheConsumer.accept(new HyperboxRegionFileStorage(path,sync));
 		}
 	}
 	
-	public static void onServerWorldPlaySound(ServerLevel serverLevel, @Nullable Player ignoredPlayer, double x, double y, double z, SoundEvent sound, SoundSource category, float volume, float pitch, CallbackInfo info)
+	public static void onServerWorldPlaySound(ServerLevel serverLevel, @Nullable Player ignoredPlayer, double x, double y, double z, SoundEvent sound, SoundSource category, float volume, float pitch, long seed, CallbackInfo info)
 	{
 		MinecraftServer server = serverLevel.getServer();
 		
@@ -84,7 +85,7 @@ public class MixinCallbacks
 					double packetY = HyperboxChunkGenerator.CENTER.getY() + dy;
 					double packetZ = HyperboxChunkGenerator.CENTER.getZ() + dz;
 					
-					ClientboundSoundPacket packet = new ClientboundSoundPacket(sound,category,packetX,packetY,packetZ,scaledVolume,scaledPitch);
+					ClientboundSoundPacket packet = new ClientboundSoundPacket(sound,category,packetX,packetY,packetZ,scaledVolume,scaledPitch,seed);
 					serverPlayer.connection.send(packet);
 				}
 				

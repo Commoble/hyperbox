@@ -1,3 +1,7 @@
+## 3.0.0.0
+* Updated to 1.19 forge build 41.0.110
+* Hyperboxes now prompt the user for a dimension id and name when first used (no more random UUID dimensions)
+
 ## 2.0.0.2
 * Fix NPE crash from attempting to get sideless capabilities from aperture and hyperbox blockentities
 * Now requires forge 40.0.35 or higher

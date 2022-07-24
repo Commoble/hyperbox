@@ -5,7 +5,6 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.function.Consumer;
-import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
 
@@ -22,35 +21,28 @@ import net.minecraft.core.HolderSet;
 import net.minecraft.core.Registry;
 import net.minecraft.core.RegistryAccess;
 import net.minecraft.resources.RegistryOps;
-import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.WorldGenRegion;
-import net.minecraft.util.random.WeightedRandomList;
-import net.minecraft.world.entity.MobCategory;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.LevelHeightAccessor;
 import net.minecraft.world.level.NoiseColumn;
-import net.minecraft.world.level.StructureFeatureManager;
+import net.minecraft.world.level.StructureManager;
 import net.minecraft.world.level.WorldGenLevel;
 import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.biome.BiomeManager;
-import net.minecraft.world.level.biome.BiomeSource;
-import net.minecraft.world.level.biome.Climate;
 import net.minecraft.world.level.biome.FixedBiomeSource;
-import net.minecraft.world.level.biome.MobSpawnSettings.SpawnerData;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.ChunkAccess;
 import net.minecraft.world.level.chunk.ChunkGenerator;
 import net.minecraft.world.level.levelgen.GenerationStep;
 import net.minecraft.world.level.levelgen.Heightmap.Types;
+import net.minecraft.world.level.levelgen.RandomState;
 import net.minecraft.world.level.levelgen.blending.Blender;
-import net.minecraft.world.level.levelgen.feature.ConfiguredStructureFeature;
-import net.minecraft.world.level.levelgen.feature.StructureFeature;
+import net.minecraft.world.level.levelgen.structure.Structure;
 import net.minecraft.world.level.levelgen.structure.StructureSet;
-import net.minecraft.world.level.levelgen.structure.placement.ConcentricRingsStructurePlacement;
-import net.minecraft.world.level.levelgen.structure.templatesystem.StructureManager;
+import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplateManager;
 
 public class HyperboxChunkGenerator extends ChunkGenerator
 {
@@ -104,29 +96,16 @@ public class HyperboxChunkGenerator extends ChunkGenerator
 	{
 		return Hyperbox.INSTANCE.hyperboxChunkGeneratorCodec.get();
 	}
-
-	// get chunk generator but with seed
-	@Override
-	public ChunkGenerator withSeed(long p_230349_1_)
-	{
-		return this;	// there's no RNG in the generation so we don't need seeding
-	}
-
-	@Override
-	public Climate.Sampler climateSampler()
-	{	// no climate -- same as debug chunk generator
-		return Climate.empty();
-	}
 	
 	// apply carvers
 	@Override
-	public void applyCarvers(WorldGenRegion world, long seed, BiomeManager biomeManager, StructureFeatureManager structureManager, ChunkAccess chunkAccess, GenerationStep.Carving carvingStep)
+	public void applyCarvers(WorldGenRegion world, long seed, RandomState random, BiomeManager biomeManager, StructureManager structureManager, ChunkAccess chunkAccess, GenerationStep.Carving carvingStep)
 	{
 		// noop
 	}
 
 	@Override
-	public void buildSurface(WorldGenRegion worldGenRegion, StructureFeatureManager structureFeatureManager, ChunkAccess chunk)
+	public void buildSurface(WorldGenRegion worldGenRegion, StructureManager structureFeatureManager, RandomState random, ChunkAccess chunk)
 	{
 		// set bedrock at the floor and ceiling and walls of the chunk
 		// ceiling y = height-1, so if height==16, ceiling==15
@@ -204,7 +183,7 @@ public class HyperboxChunkGenerator extends ChunkGenerator
 	}
 
 	@Override
-	public CompletableFuture<ChunkAccess> fillFromNoise(Executor executor, Blender blender, StructureFeatureManager structures, ChunkAccess chunk)
+	public CompletableFuture<ChunkAccess> fillFromNoise(Executor executor, Blender blender, RandomState random, StructureManager structures, ChunkAccess chunk)
 	{
 		// this is where the flat chunk generator generates flat chunks
 		return CompletableFuture.completedFuture(chunk);
@@ -230,7 +209,7 @@ public class HyperboxChunkGenerator extends ChunkGenerator
 	}
 
 	@Override
-	public int getBaseHeight(int x, int z, Types heightmapType, LevelHeightAccessor level)
+	public int getBaseHeight(int x, int z, Types heightmapType, LevelHeightAccessor level, RandomState random)
 	{
 		// flat chunk generator counts the solid blockstates in its list
 		// debug chunk generator returns 0
@@ -241,7 +220,7 @@ public class HyperboxChunkGenerator extends ChunkGenerator
 
 	// get base column
 	@Override
-	public NoiseColumn getBaseColumn(int x, int z, LevelHeightAccessor level)
+	public NoiseColumn getBaseColumn(int x, int z, LevelHeightAccessor level, RandomState random)
 	{
 		// flat chunk generator returns a reader over its blockstate list
 		// debug chunk generator returns a reader over an empty array
@@ -251,7 +230,7 @@ public class HyperboxChunkGenerator extends ChunkGenerator
 	}
 
 	@Override
-	public void addDebugScreenInfo(List<String> stringsToRender, BlockPos pos)
+	public void addDebugScreenInfo(List<String> stringsToRender, RandomState random, BlockPos pos)
 	{
 		// no info to add
 	}
@@ -262,14 +241,14 @@ public class HyperboxChunkGenerator extends ChunkGenerator
 	// get structure position
 	@Nullable
 	@Override
-	public Pair<BlockPos, Holder<ConfiguredStructureFeature<?, ?>>> findNearestMapFeature(ServerLevel level, HolderSet<ConfiguredStructureFeature<?, ?>> structures, BlockPos pos, int range, boolean skipKnownStructures)
+	public Pair<BlockPos, Holder<Structure>> findNearestMapStructure(ServerLevel level, HolderSet<Structure> structures, BlockPos pos, int range, boolean skipKnownStructures)
 	{
 		return null;
 	}
 	
 	// decorate biomes with features
 	@Override
-	public void applyBiomeDecoration(WorldGenLevel world, ChunkAccess chunkAccess, StructureFeatureManager structures)
+	public void applyBiomeDecoration(WorldGenLevel world, ChunkAccess chunkAccess, StructureManager structures)
 	{
 		// noop
 	}
@@ -282,14 +261,14 @@ public class HyperboxChunkGenerator extends ChunkGenerator
 	
 	// create structures
 	@Override
-	public void createStructures(RegistryAccess registries, StructureFeatureManager structures, ChunkAccess chunk, StructureManager templates, long seed)
+	public void createStructures(RegistryAccess registries, RandomState random, StructureManager structures, ChunkAccess chunk, StructureTemplateManager templates, long seed)
 	{
 		// no structures
 	}
 	
 	// create structure references
 	@Override
-	public void createReferences(WorldGenLevel world, StructureFeatureManager structures, ChunkAccess chunk)
+	public void createReferences(WorldGenLevel world, StructureManager structures, ChunkAccess chunk)
 	{
 		// no structures
 	}	

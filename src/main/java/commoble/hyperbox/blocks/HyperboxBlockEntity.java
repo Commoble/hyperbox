@@ -6,9 +6,12 @@ import java.util.UUID;
 import javax.annotation.Nullable;
 
 import commoble.hyperbox.Hyperbox;
+import commoble.hyperbox.dimension.DelayedTeleportData;
 import commoble.hyperbox.dimension.HyperboxChunkGenerator;
 import commoble.hyperbox.dimension.HyperboxDimension;
 import commoble.hyperbox.dimension.HyperboxWorldData;
+import commoble.hyperbox.dimension.ReturnPointCapability;
+import commoble.hyperbox.dimension.SpawnPointHelper;
 import commoble.infiniverse.api.InfiniverseAPI;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -16,21 +19,25 @@ import net.minecraft.core.Registry;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.Connection;
 import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.TranslatableComponent;
 import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.Mth;
 import net.minecraft.world.Nameable;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.dimension.DimensionType;
+import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.common.capabilities.Capability;
 import net.minecraftforge.common.util.LazyOptional;
+import net.minecraftforge.network.NetworkHooks;
 
 public class HyperboxBlockEntity extends BlockEntity implements Nameable
 {
@@ -57,12 +64,14 @@ public class HyperboxBlockEntity extends BlockEntity implements Nameable
 		super(type, pos, state);
 	}
 	
-	public void afterBlockPlaced()
+	public void updateDimensionAfterPlacingBlock()
 	{
 		if (this.level instanceof ServerLevel thisServerLevel)
 		{
 			MinecraftServer server = thisServerLevel.getServer();
-			ServerLevel childLevel = this.getOrCreateLevel(server);
+			ServerLevel childLevel = this.getLevelIfKeySet(server);
+			if (childLevel == null)
+				return;
 			if (Hyperbox.INSTANCE.commonConfig.autoForceHyperboxChunks.get())
 			{
 				childLevel.getChunk(HyperboxChunkGenerator.CHUNKPOS.x, HyperboxChunkGenerator.CHUNKPOS.z);
@@ -114,13 +123,18 @@ public class HyperboxBlockEntity extends BlockEntity implements Nameable
 	public void setLevelKey(ResourceKey<Level> key)
 	{
 		this.levelKey = Optional.ofNullable(key);
+		// force creation of level key to reserve it and sync key to client dimension lists
+		if (this.level instanceof ServerLevel level)
+		{
+			this.getLevelIfKeySet(level.getServer());
+		}
 		this.setChanged();
 	}
 
 	@Override
 	public Component getName()
 	{
-		return this.name.orElse(new TranslatableComponent("block.hyperbox.hyperbox"));
+		return this.name.orElse(Component.translatable("block.hyperbox.hyperbox"));
 	}
 
 	@Override
@@ -134,31 +148,19 @@ public class HyperboxBlockEntity extends BlockEntity implements Nameable
 	{
 		this.name = Optional.ofNullable(name);
 		this.setChanged();
+		this.level.sendBlockUpdated(worldPosition, getBlockState(), getBlockState(), Block.UPDATE_ALL);
 	}
 	
-	public ResourceKey<Level> createAndSetNewLevelKey()
+	@Nullable
+	public ServerLevel getLevelIfKeySet(MinecraftServer server)
 	{
-		// generate random time-based UUID
-		long time = this.level.getGameTime();
-		long randLong = this.level.random.nextLong();
-		UUID uuid = new UUID(time, randLong);
-		String path = "generated_hyperbox/" + uuid.toString();
-		ResourceLocation rl = new ResourceLocation(Hyperbox.MODID, path);
-		ResourceKey<Level> key = ResourceKey.create(Registry.DIMENSION_REGISTRY, rl);
-		this.setLevelKey(key);
-		return key;
-	}
-	
-	public ResourceKey<Level> getOrCreateWorldKey()
-	{
-		return this.levelKey.orElseGet(this::createAndSetNewLevelKey);
-	}
-	
-	public ServerLevel getOrCreateLevel(MinecraftServer server)
-	{
-		ServerLevel targetWorld = this.getChildWorld(server, this.getOrCreateWorldKey());
-		HyperboxWorldData.getOrCreate(targetWorld).setWorldPos(server, targetWorld, targetWorld.dimension(), this.level.dimension(), this.worldPosition, this.getColor());
-		return targetWorld;
+		return this.levelKey.map(key ->
+		{
+			ServerLevel targetWorld = this.getChildWorld(server, key);
+			HyperboxWorldData.getOrCreate(targetWorld).setWorldPos(server, targetWorld, targetWorld.dimension(), this.level.dimension(), this.worldPosition, this.getColor());
+			return targetWorld;
+		})
+			.orElse(null);
 	}
 	
 	public ServerLevel getChildWorld(MinecraftServer server, ResourceKey<Level> key)
@@ -182,13 +184,16 @@ public class HyperboxBlockEntity extends BlockEntity implements Nameable
 			// delegate to the capability of the block facing the linked aperture in the hyperspace cube
 			if (thisBlock instanceof HyperboxBlock hyperboxBlock && this.level instanceof ServerLevel serverLevel)
 			{
-				ServerLevel targetLevel = this.getOrCreateLevel(serverLevel.getServer());
-				BlockPos targetPos = hyperboxBlock.getPosAdjacentToAperture(this.getBlockState(), worldSpaceFace);
-				BlockEntity delegateBlockEntity = targetLevel.getBlockEntity(targetPos);
-				if (delegateBlockEntity != null)
+				ServerLevel targetLevel = this.getLevelIfKeySet(serverLevel.getServer());
+				if (targetLevel != null)
 				{
-					Direction rotatedDirection = hyperboxBlock.getOriginalFace(thisState, worldSpaceFace);
-					return delegateBlockEntity.getCapability(cap, rotatedDirection);
+					BlockPos targetPos = hyperboxBlock.getPosAdjacentToAperture(this.getBlockState(), worldSpaceFace);
+					BlockEntity delegateBlockEntity = targetLevel.getBlockEntity(targetPos);
+					if (delegateBlockEntity != null)
+					{
+						Direction rotatedDirection = hyperboxBlock.getOriginalFace(thisState, worldSpaceFace);
+						return delegateBlockEntity.getCapability(cap, rotatedDirection);
+					}
 				}
 			}
 		}
@@ -198,9 +203,12 @@ public class HyperboxBlockEntity extends BlockEntity implements Nameable
 	public Optional<ApertureBlockEntity> getAperture(MinecraftServer server, Direction sideOfChildLevel)
 	{
 		BlockPos aperturePos = HyperboxChunkGenerator.CENTER.relative(sideOfChildLevel, 7);
-		return this.getOrCreateLevel(server).getBlockEntity(aperturePos) instanceof ApertureBlockEntity aperture
-			? Optional.of(aperture)
-			: Optional.empty();
+		ServerLevel serverLevel = this.getLevelIfKeySet(server);
+		return serverLevel == null
+			? Optional.empty()
+			: level.getBlockEntity(aperturePos) instanceof ApertureBlockEntity aperture
+				? Optional.of(aperture)
+				: Optional.empty();
 	}
 	
 	public void updatePower(int weakPower, int strongPower, Direction originalFace)
@@ -226,6 +234,38 @@ public class HyperboxBlockEntity extends BlockEntity implements Nameable
 				this.level.neighborChanged(adjacentPos, thisBlock, this.worldPosition);
 				this.level.updateNeighborsAtExceptFromFacing(adjacentPos, thisBlock, worldSpaceFace.getOpposite());
 			}
+		}
+	}
+	
+	public void teleportPlayerOrOpenMenu(ServerPlayer serverPlayer, Direction faceActivated)
+	{
+		ServerLevel level = serverPlayer.getLevel();
+		MinecraftServer server = level.getServer();
+		ServerLevel targetLevel = this.getLevelIfKeySet(server);
+		if (targetLevel == null)
+		{
+			// if hyperbox doesn't have a dimension bound yet
+			NetworkHooks.openScreen(serverPlayer, HyperboxMenu.makeServerMenu(this));
+		}
+		else
+		{
+			// if hyperbox already has a dimension bound
+			BlockPos pos = this.getBlockPos();
+			BlockState state = this.getBlockState();
+			DimensionType hyperboxDimensionType = HyperboxDimension.getDimensionType(server);
+			if (hyperboxDimensionType != level.dimensionType())
+			{
+				serverPlayer.getCapability(ReturnPointCapability.INSTANCE).ifPresent(cap ->{
+					cap.setReturnPoint(level.dimension(), pos);
+				});
+			}
+			BlockPos posAdjacentToAperture = ((HyperboxBlock)state.getBlock()).getPosAdjacentToAperture(state, faceActivated);
+			BlockPos spawnPoint = SpawnPointHelper.getBestSpawnPosition(
+				targetLevel,
+				posAdjacentToAperture,
+				HyperboxChunkGenerator.MIN_SPAWN_CORNER,
+				HyperboxChunkGenerator.MAX_SPAWN_CORNER);
+			DelayedTeleportData.getOrCreate(serverPlayer.getLevel()).schedulePlayerTeleport(serverPlayer, targetLevel.dimension(), Vec3.atCenterOf(spawnPoint));
 		}
 	}
 

@@ -11,6 +11,7 @@ import commoble.hyperbox.blocks.ApertureBlockEntity;
 import commoble.hyperbox.blocks.HyperboxBlock;
 import commoble.hyperbox.blocks.HyperboxBlockEntity;
 import commoble.hyperbox.blocks.HyperboxBlockItem;
+import commoble.hyperbox.blocks.HyperboxMenu;
 import commoble.hyperbox.client.ClientProxy;
 import commoble.hyperbox.dimension.DelayedTeleportData;
 import commoble.hyperbox.dimension.HyperboxChunkGenerator;
@@ -18,6 +19,8 @@ import commoble.hyperbox.dimension.HyperboxDimension;
 import commoble.hyperbox.dimension.HyperboxWorldData;
 import commoble.hyperbox.dimension.ReturnPointCapability;
 import commoble.hyperbox.dimension.TeleportHelper;
+import commoble.hyperbox.network.C2SSaveHyperboxPacket;
+import commoble.hyperbox.network.PacketSerializer;
 import commoble.infiniverse.api.InfiniverseAPI;
 import commoble.infiniverse.api.UnregisterDimensionEvent;
 import net.minecraft.core.BlockPos;
@@ -29,6 +32,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.inventory.MenuType;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.Item;
@@ -47,12 +51,11 @@ import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.common.capabilities.RegisterCapabilitiesEvent;
 import net.minecraftforge.event.AttachCapabilitiesEvent;
 import net.minecraftforge.event.TickEvent;
-import net.minecraftforge.event.TickEvent.WorldTickEvent;
+import net.minecraftforge.event.TickEvent.LevelTickEvent;
 import net.minecraftforge.eventbus.api.EventPriority;
 import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.config.ModConfig.Type;
-import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 import net.minecraftforge.fml.loading.FMLEnvironment;
 import net.minecraftforge.network.NetworkRegistry;
@@ -60,7 +63,6 @@ import net.minecraftforge.network.simple.SimpleChannel;
 import net.minecraftforge.registries.DeferredRegister;
 import net.minecraftforge.registries.ForgeRegistries;
 import net.minecraftforge.registries.IForgeRegistry;
-import net.minecraftforge.registries.IForgeRegistryEntry;
 import net.minecraftforge.registries.RegistryObject;
 
 // The value here should match an entry in the META-INF/mods.toml file
@@ -92,6 +94,7 @@ public class Hyperbox
 	public final RegistryObject<BlockItem> hyperboxItem;
 	public final RegistryObject<BlockEntityType<HyperboxBlockEntity>> hyperboxBlockEntityType;
 	public final RegistryObject<BlockEntityType<ApertureBlockEntity>> apertureBlockEntityType;
+	public final RegistryObject<MenuType<HyperboxMenu>> hyperboxMenuType;
 	public final RegistryObject<Codec<HyperboxChunkGenerator>> hyperboxChunkGeneratorCodec;
 	
 	public Hyperbox()
@@ -106,7 +109,8 @@ public class Hyperbox
 		// create and set up registrars
 		DeferredRegister<Block> blocks = makeRegister(modBus, ForgeRegistries.BLOCKS);
 		DeferredRegister<Item> items = makeRegister(modBus, ForgeRegistries.ITEMS);
-		DeferredRegister<BlockEntityType<?>> tileEntities = makeRegister(modBus, ForgeRegistries.BLOCK_ENTITIES);
+		DeferredRegister<BlockEntityType<?>> tileEntities = makeRegister(modBus, ForgeRegistries.BLOCK_ENTITY_TYPES);
+		DeferredRegister<MenuType<?>> menuTypes = makeRegister(modBus, ForgeRegistries.MENU_TYPES);
 		DeferredRegister<Codec<? extends ChunkGenerator>> chunkGeneratorCodecs = makeVanillaRegister(modBus, Registry.CHUNK_GENERATOR_REGISTRY);
 		
 		this.hyperboxBlock = blocks.register(Names.HYPERBOX, () -> new HyperboxBlock(BlockBehaviour.Properties.copy(Blocks.PURPUR_BLOCK).strength(2F, 1200F).isRedstoneConductor(HyperboxBlock::getIsNormalCube)));
@@ -116,6 +120,8 @@ public class Hyperbox
 		
 		this.apertureBlock = blocks.register(Names.APERTURE, () -> new ApertureBlock(BlockBehaviour.Properties.copy(Blocks.BARRIER).lightLevel(state -> 6).isRedstoneConductor(HyperboxBlock::getIsNormalCube)));
 		this.apertureBlockEntityType = tileEntities.register(Names.APERTURE, () -> BlockEntityType.Builder.of(ApertureBlockEntity::create, this.apertureBlock.get()).build(null));
+		
+		this.hyperboxMenuType = menuTypes.register(Names.HYPERBOX, () -> new MenuType<HyperboxMenu>(HyperboxMenu::makeClientMenu));
 		
 		this.hyperboxChunkGeneratorCodec = chunkGeneratorCodecs.register(Names.HYPERBOX, HyperboxChunkGenerator::makeCodec);
 		
@@ -130,6 +136,10 @@ public class Hyperbox
 		{
 			ClientProxy.doClientModInit(modBus, forgeBus);
 		}
+		
+		// register packets
+		int id = 0;
+		PacketSerializer.register(id++, CHANNEL, C2SSaveHyperboxPacket.SERIALIZER);
 	}
 	
 	private void onRegisterCapabilities(RegisterCapabilitiesEvent event)
@@ -163,9 +173,9 @@ public class Hyperbox
 		}
 	}
 	
-	private void onHighPriorityWorldTick(WorldTickEvent event)
+	private void onHighPriorityWorldTick(LevelTickEvent event)
 	{
-		Level level = event.world;
+		Level level = event.level;
 		if (level instanceof ServerLevel serverLevel)
 		{
 			if (event.phase == TickEvent.Phase.END)
@@ -262,7 +272,7 @@ public class Hyperbox
 	}
 	
 	// create and subscribe a forge DeferredRegister
-	private static <T extends IForgeRegistryEntry<T>> DeferredRegister<T> makeRegister(IEventBus modBus, IForgeRegistry<T> registry)
+	private static <T> DeferredRegister<T> makeRegister(IEventBus modBus, IForgeRegistry<T> registry)
 	{
 		DeferredRegister<T> register = DeferredRegister.create(registry, MODID);
 		register.register(modBus);
