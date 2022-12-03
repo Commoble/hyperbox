@@ -20,7 +20,7 @@ import net.minecraft.world.level.saveddata.SavedData;
 // this class is used for storing information in a hyperbox world
 public class HyperboxWorldData extends SavedData
 {
-	public static final String DATA_KEY = Hyperbox.MODID + ":hyperbox";
+	public static final String DATA_KEY = Hyperbox.MODID;
 	public static final String PARENT_WORLD_KEY = "parent_world";
 	public static final String PARENT_POS_KEY = "parent_pos";
 	public static final BlockPos DEFAULT_PARENT_POS = new BlockPos(0,65,0);

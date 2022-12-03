@@ -1,3 +1,11 @@
+## 3.0.1.0
+* Now requires 1.19.2 forge build 43.1.0 or higher
+* The name-your-hyperbox menu now opens with the dimension id field focused
+* Pressing the 'Enter' key on the name-your-hyperbox screen now saves the hyperbox id and enters the hyperbox
+* The 'hyperbox' nbt file in each hyperbox dimension's data folder is now called 'hyperbox.dat'. Due to the below bug, this file wasn't actually being read properly, so this *probably* won't affect anyone.
+* Fixed a bug where players logging out while in hyperboxes would log back in at their spawn point instead of the hyperbox (you'll need to re-enter your hyperbox to apply this fix)
+* Fixed a bug where pressing the inventory key while in the name-your-hyperbox menu would close the menu
+
 ## 3.0.0.0
 * Updated to 1.19 forge build 41.0.110
 * Hyperboxes now prompt the user for a dimension id and name when first used (no more random UUID dimensions)

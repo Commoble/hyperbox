@@ -1,5 +1,6 @@
 package commoble.hyperbox.client;
 
+import com.mojang.blaze3d.platform.InputConstants;
 import com.mojang.blaze3d.vertex.PoseStack;
 
 import commoble.hyperbox.Hyperbox;
@@ -10,6 +11,7 @@ import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.Checkbox;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.components.Widget;
+import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.core.Registry;
 import net.minecraft.network.chat.Component;
@@ -97,6 +99,7 @@ public class HyperboxScreen extends AbstractContainerScreen<HyperboxMenu>
 			this.minecraft.player.closeContainer();
 		});
 		this.addRenderableWidget(this.cancelButton);
+		this.setInitialFocus(this.dimensionEdit);
 	}
 	
 	@Override
@@ -105,6 +108,47 @@ public class HyperboxScreen extends AbstractContainerScreen<HyperboxMenu>
 		super.containerTick();
 		this.dimensionEdit.tick();
 		this.nameEdit.tick();
+	}
+
+	@Override
+	public boolean keyPressed(int key, int scanCode, int mods)
+	{
+		// bypass AbstractContainerScreen#keyPressed so we don't close on inventory keybind
+		if (key == InputConstants.KEY_ESCAPE && this.shouldCloseOnEsc())
+		{
+			this.onClose();
+			return true;
+		}
+		else if (key == InputConstants.KEY_TAB)
+		{
+			boolean flag = !hasShiftDown();
+			if (!this.changeFocus(flag))
+			{
+				this.changeFocus(flag);
+			}
+
+			return false;
+		}
+		else if (this.getFocused() != null && this.getFocused().keyPressed(key, scanCode, mods))
+		{
+			return true;
+		}
+		else if (key != InputConstants.KEY_RETURN && key != InputConstants.KEY_NUMPADENTER)
+		{
+			return false;
+		}
+		else
+		{
+			if (this.dimensionEdit.getValue().isBlank())
+			{
+				this.onClose();
+			}
+			else if (this.isDimensionIdValid(this.dimensionEdit.getValue()))
+			{
+				this.onSave(true);
+			}
+			return true;
+		}
 	}
 	
 	@Override
@@ -133,6 +177,7 @@ public class HyperboxScreen extends AbstractContainerScreen<HyperboxMenu>
 	
 	protected void onSave(boolean enterImmediate)
 	{
+        this.minecraft.setScreen((Screen)null);
 		this.saveAndEnterButton.active = false;
 		this.saveAndExitButton.active = false;
 		String dimensionId = this.dimensionEdit.getValue();
