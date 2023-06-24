@@ -11,7 +11,7 @@ import commoble.hyperbox.Hyperbox;
 import commoble.hyperbox.Names;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import net.minecraft.core.Registry;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtOps;
 import net.minecraft.resources.ResourceKey;
@@ -79,7 +79,7 @@ public class ReturnPointCapability implements ICapabilitySerializable<CompoundTa
 	private static record Data(ResourceKey<Level> lastWorld, BlockPos lastPos)
 	{
 		public static final Codec<Data> CODEC = RecordCodecBuilder.create(instance -> instance.group(
-				ResourceLocation.CODEC.xmap(s -> ResourceKey.create(Registry.DIMENSION_REGISTRY, s), ResourceKey::location).fieldOf("last_world").forGetter(Data::lastWorld),
+				ResourceLocation.CODEC.xmap(s -> ResourceKey.create(Registries.DIMENSION, s), ResourceKey::location).fieldOf("last_world").forGetter(Data::lastWorld),
 				BlockPos.CODEC.fieldOf("last_pos").forGetter(Data::lastPos)
 			).apply(instance, Data::new));
 

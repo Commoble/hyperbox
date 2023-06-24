@@ -6,15 +6,15 @@ import java.util.Set;
 import javax.annotation.Nullable;
 
 import commoble.hyperbox.Hyperbox;
-import net.minecraft.server.MinecraftServer;
-import net.minecraft.resources.ResourceKey;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
-import net.minecraft.core.Registry;
-import net.minecraft.world.level.dimension.LevelStem;
-import net.minecraft.world.level.dimension.DimensionType;
-import net.minecraft.world.level.Level;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.dimension.DimensionType;
+import net.minecraft.world.level.dimension.LevelStem;
 
 public class HyperboxDimension
 {	
@@ -26,7 +26,7 @@ public class HyperboxDimension
 	public static Holder<DimensionType> getDimensionTypeHolder(MinecraftServer server)
 	{
 		return server.registryAccess() // get dynamic registries
-			.registryOrThrow(Registry.DIMENSION_TYPE_REGISTRY)
+			.registryOrThrow(Registries.DIMENSION_TYPE)
 			.getHolderOrThrow(Hyperbox.DIMENSION_TYPE_KEY);
 	}
 	

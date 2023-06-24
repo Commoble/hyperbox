@@ -1,8 +1,9 @@
 package commoble.hyperbox.client;
 
+import org.joml.Matrix4f;
+import org.joml.Quaternionf;
+
 import com.mojang.blaze3d.vertex.PoseStack;
-import com.mojang.math.Matrix4f;
-import com.mojang.math.Quaternion;
 
 import commoble.hyperbox.blocks.HyperboxBlockEntity;
 import net.minecraft.client.Minecraft;
@@ -51,7 +52,7 @@ public class HyperboxBlockEntityRenderer implements BlockEntityRenderer<Hyperbox
 	public static void renderName(Minecraft mc, HyperboxBlockEntity hyperbox, Component displayNameIn, PoseStack matrixStackIn, MultiBufferSource bufferIn, int packedLightIn)
 	{
 		Font fontRenderer = mc.font;
-		Quaternion cameraRotation = mc.getEntityRenderDispatcher().cameraOrientation();
+		Quaternionf cameraRotation = mc.getEntityRenderDispatcher().cameraOrientation();
 		
 		matrixStackIn.pushPose();
 		matrixStackIn.translate(0.5F, 1.4F, 0.5F);
@@ -62,8 +63,8 @@ public class HyperboxBlockEntityRenderer implements BlockEntityRenderer<Hyperbox
 		int alpha = (int) (backgroundOpacity * 255.0F) << 24;
 		float textOffset = -fontRenderer.width(displayNameIn) / 2;
 		bufferIn = Minecraft.getInstance().renderBuffers().outlineBufferSource();
-		fontRenderer.drawInBatch(displayNameIn, textOffset, 0F, 553648127, false, matrix4f, bufferIn, false, alpha, 0xFFFFFF);
-		fontRenderer.drawInBatch(displayNameIn, textOffset, 0F, -1, false, matrix4f, bufferIn, false, 0, 0xFFFFFF);
+		fontRenderer.drawInBatch(displayNameIn, textOffset, 0F, 553648127, false, matrix4f, bufferIn, Font.DisplayMode.SEE_THROUGH, alpha, 0xFFFFFF);
+		fontRenderer.drawInBatch(displayNameIn, textOffset, 0F, -1, false, matrix4f, bufferIn, Font.DisplayMode.NORMAL, 0, 0xFFFFFF);
 		
 		matrixStackIn.popPose();
 	}

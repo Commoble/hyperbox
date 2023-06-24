@@ -86,7 +86,7 @@ public class ApertureBlock extends Block implements EntityBlock
 			// else if parent pos is no longer a hyperblock for whatever reason, just teleport them to parentpos
 			
 			
-			DelayedTeleportData.getOrCreate(serverPlayer.getLevel()).schedulePlayerTeleport(serverPlayer, destinationLevel.dimension(), Vec3.atCenterOf(targetPos));
+			DelayedTeleportData.getOrCreate(serverPlayer.serverLevel()).schedulePlayerTeleport(serverPlayer, destinationLevel.dimension(), Vec3.atCenterOf(targetPos));
 		}
 		return InteractionResult.SUCCESS;
 	}

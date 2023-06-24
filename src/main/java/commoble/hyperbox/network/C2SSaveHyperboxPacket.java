@@ -5,7 +5,7 @@ import java.util.function.Consumer;
 import commoble.hyperbox.Hyperbox;
 import commoble.hyperbox.blocks.HyperboxMenu;
 import net.minecraft.core.Direction;
-import net.minecraft.core.Registry;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
@@ -54,8 +54,8 @@ public record C2SSaveHyperboxPacket(String dimension, String name, boolean enter
 		}
 		
 		ResourceLocation dimensionId = new ResourceLocation(Hyperbox.MODID, this.dimension);
-		ResourceKey<Level> levelKey = ResourceKey.create(Registry.DIMENSION_REGISTRY, dimensionId);
-		ServerLevel level = player.getLevel();
+		ResourceKey<Level> levelKey = ResourceKey.create(Registries.DIMENSION, dimensionId);
+		ServerLevel level = player.serverLevel();
 		if (level.getServer().getLevel(levelKey) != null)
 		{
 			// send invalid dimension id packet: existing id

@@ -3,16 +3,16 @@ package commoble.hyperbox.dimension;
 import commoble.hyperbox.Hyperbox;
 import commoble.hyperbox.blocks.ApertureBlockEntity;
 import commoble.hyperbox.blocks.HyperboxBlockEntity;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtUtils;
-import net.minecraft.server.MinecraftServer;
-import net.minecraft.core.Direction;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.core.BlockPos;
-import net.minecraft.core.Registry;
-import net.minecraft.world.level.Level;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.level.saveddata.SavedData;
 
 // WorldSavedData is used for storing extra data in ServerWorld instances
@@ -39,7 +39,7 @@ public class HyperboxWorldData extends SavedData
 	
 	public static HyperboxWorldData load(CompoundTag nbt)
 	{
-		ResourceKey<Level> parentWorld = ResourceKey.create(Registry.DIMENSION_REGISTRY, new ResourceLocation(nbt.getString(PARENT_WORLD_KEY)));
+		ResourceKey<Level> parentWorld = ResourceKey.create(Registries.DIMENSION, new ResourceLocation(nbt.getString(PARENT_WORLD_KEY)));
 		BlockPos parentPos = NbtUtils.readBlockPos(nbt.getCompound(PARENT_POS_KEY));
 		return new HyperboxWorldData(parentWorld, parentPos);
 	}

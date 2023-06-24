@@ -6,15 +6,9 @@ import javax.annotation.Nullable;
 
 import commoble.hyperbox.Hyperbox;
 import commoble.hyperbox.RotationHelper;
-import commoble.hyperbox.dimension.DelayedTeleportData;
 import commoble.hyperbox.dimension.HyperboxChunkGenerator;
-import commoble.hyperbox.dimension.HyperboxDimension;
-import commoble.hyperbox.dimension.ReturnPointCapability;
-import commoble.hyperbox.dimension.SpawnPointHelper;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import net.minecraft.resources.ResourceKey;
-import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
@@ -37,10 +31,8 @@ import net.minecraft.world.level.block.state.StateDefinition.Builder;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraft.world.level.block.state.properties.DirectionProperty;
 import net.minecraft.world.level.block.state.properties.IntegerProperty;
-import net.minecraft.world.level.dimension.DimensionType;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
-import net.minecraftforge.network.NetworkHooks;
 
 public class HyperboxBlock extends Block implements EntityBlock
 {	
@@ -209,7 +201,8 @@ public class HyperboxBlock extends Block implements EntityBlock
 	{
 		if (level instanceof ServerLevel serverLevel)
 		{
-			@Nullable Direction directionToNeighbor = Direction.fromNormal(neighborPos.subtract(thisPos));
+			BlockPos offsetToNeighbor = neighborPos.subtract(thisPos);
+			@Nullable Direction directionToNeighbor = Direction.fromDelta(offsetToNeighbor.getX(), offsetToNeighbor.getY(), offsetToNeighbor.getZ());
 			if (directionToNeighbor != null)
 			{
 				this.getApertureTileEntityForFace(thisState, serverLevel,thisPos,directionToNeighbor).ifPresent(te -> {

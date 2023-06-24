@@ -81,7 +81,8 @@ public class ClientProxy
 		{
 			@SuppressWarnings("resource")
 			LocalPlayer player = Minecraft.getInstance().player;
-			if (player != null && player.level != null)
+			Level level = player.level();
+			if (player != null && level != null)
 			{
 				InteractionHand hand = player.getUsedItemHand();
 				Item item = player.getItemInHand(hand == null ? InteractionHand.MAIN_HAND : hand).getItem();
@@ -90,13 +91,12 @@ public class ClientProxy
 					Block block = blockItem.getBlock();
 					if (block instanceof HyperboxBlock hyperboxBlock)
 					{
-						Level level = player.level;
 						BlockHitResult rayTrace = event.getTarget();
 						Direction directionAwayFromTargetedBlock = rayTrace.getDirection();
 						BlockPos placePos = rayTrace.getBlockPos().relative(directionAwayFromTargetedBlock);
 
 						BlockState existingState = level.getBlockState(placePos);
-						if (existingState.isAir() || existingState.getMaterial().isReplaceable())
+						if (existingState.isAir() || existingState.canBeReplaced())
 						{
 							// only render the preview if we know it would make sense for the block to be
 							// placed where we expect it to be

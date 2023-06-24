@@ -25,6 +25,7 @@ import commoble.infiniverse.api.InfiniverseAPI;
 import commoble.infiniverse.api.UnregisterDimensionEvent;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Registry;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
@@ -32,9 +33,10 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.flag.FeatureFlags;
 import net.minecraft.world.inventory.MenuType;
 import net.minecraft.world.item.BlockItem;
-import net.minecraft.world.item.CreativeModeTab;
+import net.minecraft.world.item.CreativeModeTabs;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.biome.Biome;
@@ -50,6 +52,7 @@ import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.common.capabilities.RegisterCapabilitiesEvent;
 import net.minecraftforge.event.AttachCapabilitiesEvent;
+import net.minecraftforge.event.BuildCreativeModeTabContentsEvent;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.event.TickEvent.LevelTickEvent;
 import net.minecraftforge.eventbus.api.EventPriority;
@@ -81,10 +84,10 @@ public class Hyperbox
 	
 	public static final ResourceLocation HYPERBOX_ID = new ResourceLocation(MODID, Names.HYPERBOX);
 	// keys for the hyperbox dimension stuff
-	public static final ResourceKey<Biome> BIOME_KEY = ResourceKey.create(Registry.BIOME_REGISTRY, HYPERBOX_ID);
-	public static final ResourceKey<Level> WORLD_KEY = ResourceKey.create(Registry.DIMENSION_REGISTRY, HYPERBOX_ID);
-	public static final ResourceKey<LevelStem> DIMENSION_KEY = ResourceKey.create(Registry.LEVEL_STEM_REGISTRY, HYPERBOX_ID);
-	public static final ResourceKey<DimensionType> DIMENSION_TYPE_KEY = ResourceKey.create(Registry.DIMENSION_TYPE_REGISTRY, HYPERBOX_ID);
+	public static final ResourceKey<Biome> BIOME_KEY = ResourceKey.create(Registries.BIOME, HYPERBOX_ID);
+	public static final ResourceKey<Level> WORLD_KEY = ResourceKey.create(Registries.DIMENSION, HYPERBOX_ID);
+	public static final ResourceKey<LevelStem> DIMENSION_KEY = ResourceKey.create(Registries.LEVEL_STEM, HYPERBOX_ID);
+	public static final ResourceKey<DimensionType> DIMENSION_TYPE_KEY = ResourceKey.create(Registries.DIMENSION_TYPE, HYPERBOX_ID);
 	
 	public final CommonConfig commonConfig;
 	public final RegistryObject<HyperboxBlock> hyperboxBlock;
@@ -111,22 +114,23 @@ public class Hyperbox
 		DeferredRegister<Item> items = makeRegister(modBus, ForgeRegistries.ITEMS);
 		DeferredRegister<BlockEntityType<?>> tileEntities = makeRegister(modBus, ForgeRegistries.BLOCK_ENTITY_TYPES);
 		DeferredRegister<MenuType<?>> menuTypes = makeRegister(modBus, ForgeRegistries.MENU_TYPES);
-		DeferredRegister<Codec<? extends ChunkGenerator>> chunkGeneratorCodecs = makeVanillaRegister(modBus, Registry.CHUNK_GENERATOR_REGISTRY);
+		DeferredRegister<Codec<? extends ChunkGenerator>> chunkGeneratorCodecs = makeVanillaRegister(modBus, Registries.CHUNK_GENERATOR);
 		
 		this.hyperboxBlock = blocks.register(Names.HYPERBOX, () -> new HyperboxBlock(BlockBehaviour.Properties.copy(Blocks.PURPUR_BLOCK).strength(2F, 1200F).isRedstoneConductor(HyperboxBlock::getIsNormalCube)));
 		this.hyperboxPreviewBlock = blocks.register(Names.HYPERBOX_PREVIEW, () -> new HyperboxBlock(BlockBehaviour.Properties.copy(Blocks.PURPUR_BLOCK).strength(2F, 1200F).isRedstoneConductor(HyperboxBlock::getIsNormalCube)));
-		this.hyperboxItem = items.register(Names.HYPERBOX, () -> new HyperboxBlockItem(this.hyperboxBlock.get(), new Item.Properties().tab(CreativeModeTab.TAB_DECORATIONS)));
+		this.hyperboxItem = items.register(Names.HYPERBOX, () -> new HyperboxBlockItem(this.hyperboxBlock.get(), new Item.Properties()));
 		this.hyperboxBlockEntityType = tileEntities.register(Names.HYPERBOX, () -> BlockEntityType.Builder.of(HyperboxBlockEntity::create, this.hyperboxBlock.get()).build(null));
 		
 		this.apertureBlock = blocks.register(Names.APERTURE, () -> new ApertureBlock(BlockBehaviour.Properties.copy(Blocks.BARRIER).lightLevel(state -> 6).isRedstoneConductor(HyperboxBlock::getIsNormalCube)));
 		this.apertureBlockEntityType = tileEntities.register(Names.APERTURE, () -> BlockEntityType.Builder.of(ApertureBlockEntity::create, this.apertureBlock.get()).build(null));
 		
-		this.hyperboxMenuType = menuTypes.register(Names.HYPERBOX, () -> new MenuType<HyperboxMenu>(HyperboxMenu::makeClientMenu));
+		this.hyperboxMenuType = menuTypes.register(Names.HYPERBOX, () -> new MenuType<HyperboxMenu>(HyperboxMenu::makeClientMenu, FeatureFlags.VANILLA_SET));
 		
 		this.hyperboxChunkGeneratorCodec = chunkGeneratorCodecs.register(Names.HYPERBOX, HyperboxChunkGenerator::makeCodec);
 		
 		// subscribe event handlers
 		modBus.addListener(this::onRegisterCapabilities);
+		modBus.addListener(this::onBuildTabContents);
 		forgeBus.addListener(this::onUnregisterDimension);
 		forgeBus.addListener(EventPriority.HIGH, this::onHighPriorityWorldTick);
 		forgeBus.addGenericListener(Entity.class, this::onAttachEntityCapabilities);
@@ -145,6 +149,14 @@ public class Hyperbox
 	private void onRegisterCapabilities(RegisterCapabilitiesEvent event)
 	{
 		event.register(ReturnPointCapability.class);
+	}
+	
+	private void onBuildTabContents(BuildCreativeModeTabContentsEvent event)
+	{
+		if (event.getTabKey() == CreativeModeTabs.FUNCTIONAL_BLOCKS || event.getTabKey() == CreativeModeTabs.REDSTONE_BLOCKS)
+		{
+			event.accept(this.hyperboxItem);			
+		}
 	}
 	
 	private void onAttachEntityCapabilities(AttachCapabilitiesEvent<Entity> event)

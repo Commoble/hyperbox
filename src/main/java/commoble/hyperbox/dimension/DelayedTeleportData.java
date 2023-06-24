@@ -66,7 +66,7 @@ public class DelayedTeleportData extends SavedData
 		{
 			@Nullable ServerPlayer player = server.getPlayerList().getPlayer(entry.playerUUID);
 			@Nullable ServerLevel targetWorld = server.getLevel(entry.targetLevel);
-			if (player != null && targetWorld != null && player.level == level)
+			if (player != null && targetWorld != null && player.level() == level)
 			{
 				TeleportHelper.sendPlayerToDimension(player, targetWorld, entry.targetVec);
 			}

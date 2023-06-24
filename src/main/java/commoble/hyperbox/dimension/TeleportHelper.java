@@ -9,13 +9,10 @@ import net.minecraft.world.phys.Vec3;
 
 public class TeleportHelper
 {	
-	// helper for sending a given player to another dimension
-	// for static dimensions (from datapacks, etc) use MinecraftServer::getWorld to get the world object
-	// for dynamic dimensions (mystcrafty) use infiniverse to get the target world
 	public static void sendPlayerToDimension(ServerPlayer serverPlayer, ServerLevel targetLevel, Vec3 targetVec)
 	{
 		// ensure destination chunk is loaded before we put the player in it
-		targetLevel.getChunk(new BlockPos(targetVec));
+		targetLevel.getChunk(new BlockPos((int)targetVec.x, (int)targetVec.y, (int)targetVec.z));
 		serverPlayer.teleportTo(targetLevel, targetVec.x(), targetVec.y(), targetVec.z(), serverPlayer.getYRot(), serverPlayer.getXRot());
 	}
 	

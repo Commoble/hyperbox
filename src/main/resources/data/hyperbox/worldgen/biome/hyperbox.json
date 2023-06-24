@@ -1,7 +1,4 @@
 {
-	"category": "none",
-	"depth": 0.0,
-	"scale": 1.0,
 	"effects": 
 	{
 		"fog_color": 0,
@@ -23,14 +20,11 @@
 			"replace_current_music": true
 		}
 	},
-	"precipitation": "none",
+	"has_precipitation": false,
 	"temperature": 0.8,
 	"downfall": 0.4,
-	"surface_builder": "nope",
 	"carvers": {},
 	"features": [],
-	"starts": [],
 	"spawners": {},
-	"spawn_costs": {},
-	"player_spawn_friendly": false
+	"spawn_costs": {}
 }

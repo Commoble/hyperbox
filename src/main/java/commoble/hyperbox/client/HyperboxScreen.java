@@ -1,19 +1,21 @@
 package commoble.hyperbox.client;
 
 import com.mojang.blaze3d.platform.InputConstants;
-import com.mojang.blaze3d.vertex.PoseStack;
 
 import commoble.hyperbox.Hyperbox;
 import commoble.hyperbox.blocks.HyperboxMenu;
 import commoble.hyperbox.network.C2SSaveHyperboxPacket;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.ComponentPath;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.Checkbox;
 import net.minecraft.client.gui.components.EditBox;
-import net.minecraft.client.gui.components.Widget;
+import net.minecraft.client.gui.components.Renderable;
+import net.minecraft.client.gui.navigation.FocusNavigationEvent;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
-import net.minecraft.core.Registry;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
@@ -80,24 +82,21 @@ public class HyperboxScreen extends AbstractContainerScreen<HyperboxMenu>
 		this.nameEdit.setEditable(false);
 		this.addRenderableWidget(this.nameEdit);
 		
-		this.saveAndEnterButton = new Button(this.width/2 -152, 160, 300, 20, SAVE_AND_ENTER_LABEL, b ->
-		{
-			this.onSave(true);
-		});
+		this.saveAndEnterButton = Button.builder(SAVE_AND_ENTER_LABEL, b -> this.onSave(true))
+			.bounds(this.width/2 - 152, 160, 300, 20)
+			.build();
 		this.saveAndEnterButton.active = false;
 		this.addRenderableWidget(this.saveAndEnterButton);
 		
-		this.saveAndExitButton = new Button(this.width/2 -152, 185, 300, 20, SAVE_AND_EXIT_LABEL, b ->
-		{
-			this.onSave(false);
-		});
+		this.saveAndExitButton = Button.builder(SAVE_AND_EXIT_LABEL, b -> this.onSave(false))
+			.bounds(this.width/2 -152, 185, 300, 20)
+			.build();
 		this.saveAndExitButton.active = false;
 		this.addRenderableWidget(this.saveAndExitButton);
 		
-		this.cancelButton = new Button(this.width/2 -152, 210, 300, 20, CANCEL_LABEL, b ->
-		{
-			this.minecraft.player.closeContainer();
-		});
+		this.cancelButton = Button.builder(CANCEL_LABEL, b -> this.minecraft.player.closeContainer())
+			.bounds(this.width/2 -152, 210, 300, 20)
+			.build();
 		this.addRenderableWidget(this.cancelButton);
 		this.setInitialFocus(this.dimensionEdit);
 	}
@@ -121,10 +120,21 @@ public class HyperboxScreen extends AbstractContainerScreen<HyperboxMenu>
 		}
 		else if (key == InputConstants.KEY_TAB)
 		{
-			boolean flag = !hasShiftDown();
-			if (!this.changeFocus(flag))
+			FocusNavigationEvent tabEvent = new FocusNavigationEvent.TabNavigation(!hasShiftDown());
+			ComponentPath nextFocusPath = super.nextFocusPath(tabEvent);
+			if (nextFocusPath == null)
 			{
-				this.changeFocus(flag);
+				ComponentPath currentFocusPath = this.getCurrentFocusPath();
+				if (currentFocusPath != null)
+				{
+					currentFocusPath.applyFocus(false);
+				}
+				nextFocusPath = super.nextFocusPath(tabEvent);
+			}
+			
+			if (nextFocusPath != null)
+			{
+				this.changeFocus(nextFocusPath);
 			}
 
 			return false;
@@ -152,25 +162,25 @@ public class HyperboxScreen extends AbstractContainerScreen<HyperboxMenu>
 	}
 	
 	@Override
-	public void render(PoseStack poseStack, int mouseX, int mouseY, float partialTicks)
+	public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTicks)
 	{
-		this.renderBackground(poseStack);
-		drawCenteredString(poseStack, this.font, this.title, this.width / 2, 10, 16777215);
-		drawString(poseStack, this.font, EDIT_DIMENSION_LABEL, this.width/2 - 152, 30, 10526880);
-		drawString(poseStack, this.font, EDIT_NAME_LABEL, this.width/2 - 152, 110, 10526880);
+		this.renderBackground(graphics);
+		graphics.drawCenteredString(this.font, this.title, this.width / 2, 10, 16777215);
+		graphics.drawString(this.font, EDIT_DIMENSION_LABEL, this.width/2 - 152, 30, 10526880);
+		graphics.drawString(this.font, EDIT_NAME_LABEL, this.width/2 - 152, 110, 10526880);
 		if (!isDimensionIdFree(this.dimensionEdit.getValue()))
 		{
-			drawString(poseStack, this.font, DIMENSION_ID_IN_USE, this.width/2 - 152, 65, 0xFF0000);
+			graphics.drawString(this.font, DIMENSION_ID_IN_USE, this.width/2 - 152, 65, 0xFF0000);
 		}
 		
-		for (Widget widget : this.renderables)
+		for (Renderable renderable : this.renderables)
 		{
-			widget.render(poseStack, mouseX, mouseY, partialTicks);
+			renderable.render(graphics, mouseX, mouseY, partialTicks);
 		}
 	}
 
 	@Override
-	protected void renderBg(PoseStack poseStack, float partialTicks, int mouseX, int mouseY)
+	protected void renderBg(GuiGraphics graphics, float partialTicks, int mouseX, int mouseY)
 	{
 		
 	}
@@ -194,6 +204,6 @@ public class HyperboxScreen extends AbstractContainerScreen<HyperboxMenu>
 	public static boolean isDimensionIdFree(String dimensionId)
 	{
 		return !Minecraft.getInstance().player.connection.levels()
-			.contains(ResourceKey.create(Registry.DIMENSION_REGISTRY, new ResourceLocation(Hyperbox.MODID, dimensionId)));
+			.contains(ResourceKey.create(Registries.DIMENSION, new ResourceLocation(Hyperbox.MODID, dimensionId)));
 	}
 }

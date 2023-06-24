@@ -21,6 +21,7 @@ group = "commoble.${modid}" // http://maven.apache.org/guides/mini/guide-naming-
 archivesBaseName = "${modid}-${mc_version}"
 
 java.toolchain.languageVersion = JavaLanguageVersion.of(17)
+jarJar.enable()
 
 minecraft {
     mappings channel: 'official', version: "${mc_version}"    
@@ -68,11 +69,12 @@ minecraft {
 }
 
 repositories {
-	// mavens for JEI
-    maven { url = "https://dvs1.progwml6.com/files/maven/" }
-    maven { url = "https://modmaven.k-4u.nl" }
-    // maven for databuddy and infiniverse
-	maven { url "https://cubicinterpolation.net/maven/" }
+	mavenCentral()
+	maven {url = "https://maven.blamejared.com/"}
+	maven {url = "https://dvs1.progwml6.com/files/maven/"}
+	maven {url = "https://modmaven.dev"}
+	maven {url = "https://cursemaven.com"}
+	maven {url = "https://cubicinterpolation.net/maven/"}
 }
 
 dependencies {
@@ -84,10 +86,12 @@ dependencies {
 	// at runtime, use the full JEI jar
 	// runtimeOnly fg.deobf("mezz.jei:jei-${mc_version}:${jei_version}")
 	implementation fg.deobf("commoble.infiniverse:${infiniverse_mc_version}:${infiniverse_version}")
+	jarJar(group: "commoble:infiniverse", name: "${infiniverse_mc_version}", version: "[${infiniverse_min_version}, ${infiniverse_max_version})")
 }
 
 // Example for how to get properties into the manifest for reading by the runtime..
 jar {
+	classifier 'slim'
     manifest {
         attributes([
             "Specification-Title": "${modid}",
@@ -102,17 +106,30 @@ jar {
     }
 }
 
-jar.finalizedBy('reobfJar') 
 
+reobf {
+    jarJar { }
+}
+
+// this replaces jar.finalizedBy('reobfJar') in the standard forge mod buildscript
+tasks.build.dependsOn tasks.jarJar
+jar.finalizedBy('reobfJarJar')
+
+// run "gradlew build publish" to build jars and generate a maven repo for them
+// run "gradlew build" to build the jars without mavening them
 publishing {
     publications {
         mavenJava(MavenPublication) {
-            artifact jar
+			artifactId project.archivesBaseName
+            artifact tasks.jarJar
+			//artifact sourcesJar
+			//artifact javadocJar
         }
     }
     repositories {
         maven {
-            url "file:///${project.projectDir}/mcmodsrepo"
+			name="localMaven"
+            url "file:///${project.projectDir}/maven"
         }
     }
 }

@@ -1,7 +1,6 @@
 package commoble.hyperbox.blocks;
 
 import java.util.Optional;
-import java.util.UUID;
 
 import javax.annotation.Nullable;
 
@@ -15,7 +14,7 @@ import commoble.hyperbox.dimension.SpawnPointHelper;
 import commoble.infiniverse.api.InfiniverseAPI;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import net.minecraft.core.Registry;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.Connection;
 import net.minecraft.network.chat.Component;
@@ -27,7 +26,6 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.Mth;
 import net.minecraft.world.Nameable;
-import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntity;
@@ -203,10 +201,10 @@ public class HyperboxBlockEntity extends BlockEntity implements Nameable
 	public Optional<ApertureBlockEntity> getAperture(MinecraftServer server, Direction sideOfChildLevel)
 	{
 		BlockPos aperturePos = HyperboxChunkGenerator.CENTER.relative(sideOfChildLevel, 7);
-		ServerLevel serverLevel = this.getLevelIfKeySet(server);
-		return serverLevel == null
+		ServerLevel targetLevel = this.getLevelIfKeySet(server);
+		return targetLevel == null
 			? Optional.empty()
-			: level.getBlockEntity(aperturePos) instanceof ApertureBlockEntity aperture
+			: targetLevel.getBlockEntity(aperturePos) instanceof ApertureBlockEntity aperture
 				? Optional.of(aperture)
 				: Optional.empty();
 	}
@@ -239,7 +237,7 @@ public class HyperboxBlockEntity extends BlockEntity implements Nameable
 	
 	public void teleportPlayerOrOpenMenu(ServerPlayer serverPlayer, Direction faceActivated)
 	{
-		ServerLevel level = serverPlayer.getLevel();
+		ServerLevel level = serverPlayer.serverLevel();
 		MinecraftServer server = level.getServer();
 		ServerLevel targetLevel = this.getLevelIfKeySet(server);
 		if (targetLevel == null)
@@ -265,7 +263,7 @@ public class HyperboxBlockEntity extends BlockEntity implements Nameable
 				posAdjacentToAperture,
 				HyperboxChunkGenerator.MIN_SPAWN_CORNER,
 				HyperboxChunkGenerator.MAX_SPAWN_CORNER);
-			DelayedTeleportData.getOrCreate(serverPlayer.getLevel()).schedulePlayerTeleport(serverPlayer, targetLevel.dimension(), Vec3.atCenterOf(spawnPoint));
+			DelayedTeleportData.getOrCreate(serverPlayer.serverLevel()).schedulePlayerTeleport(serverPlayer, targetLevel.dimension(), Vec3.atCenterOf(spawnPoint));
 		}
 	}
 
@@ -282,7 +280,7 @@ public class HyperboxBlockEntity extends BlockEntity implements Nameable
 	{
 		super.load(nbt);
 		this.levelKey = nbt.contains(WORLD_KEY)
-			? Optional.of(ResourceKey.create(Registry.DIMENSION_REGISTRY, new ResourceLocation(nbt.getString(WORLD_KEY))))
+			? Optional.of(ResourceKey.create(Registries.DIMENSION, new ResourceLocation(nbt.getString(WORLD_KEY))))
 			: Optional.empty();
 		this.readClientSensitiveData(nbt);
 	}

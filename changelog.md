@@ -1,3 +1,8 @@
+## 4.0.0.0
+* Updated to 1.20.1. Requires forge 47.0.3 or higher. Old worlds are not compatible.
+* Infiniverse 1.0.0.5 is now bundled with Hyperbox via forge's Jar-In-Jar system (you don't have to install Infiniverse yourself anymore unless you need to use a newer version of infiniverse)
+* Hyperbox rooms now generate at chunk 0,0 in each hyperbox dimension instead of chunk 16,16
+
 ## 3.0.1.0
 * Now requires 1.19.2 forge build 43.1.0 or higher
 * The name-your-hyperbox menu now opens with the dimension id field focused

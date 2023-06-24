@@ -1,7 +1,6 @@
 package commoble.hyperbox.dimension;
 
 import java.util.List;
-import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.function.Consumer;
@@ -10,7 +9,6 @@ import javax.annotation.Nullable;
 
 import com.mojang.datafixers.util.Pair;
 import com.mojang.serialization.Codec;
-import com.mojang.serialization.codecs.RecordCodecBuilder;
 
 import commoble.hyperbox.Hyperbox;
 import commoble.hyperbox.blocks.ApertureBlock;
@@ -18,9 +16,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.Holder;
 import net.minecraft.core.HolderSet;
-import net.minecraft.core.Registry;
-import net.minecraft.core.RegistryAccess;
-import net.minecraft.resources.RegistryOps;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.WorldGenRegion;
@@ -41,15 +37,10 @@ import net.minecraft.world.level.levelgen.Heightmap.Types;
 import net.minecraft.world.level.levelgen.RandomState;
 import net.minecraft.world.level.levelgen.blending.Blender;
 import net.minecraft.world.level.levelgen.structure.Structure;
-import net.minecraft.world.level.levelgen.structure.StructureSet;
-import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplateManager;
 
 public class HyperboxChunkGenerator extends ChunkGenerator
 {
-	// put the chunk in the center of the region file
-		// if we put it in the corner, then the three adjacent regions get loaded
-		// and makes the save file 4x larger than it needs to be
-	public static final ChunkPos CHUNKPOS = new ChunkPos(16,16);
+	public static final ChunkPos CHUNKPOS = new ChunkPos(0,0);
 	public static final long CHUNKID = CHUNKPOS.toLong();
 	public static final BlockPos CORNER = CHUNKPOS.getWorldPosition();
 	public static final BlockPos CENTER = CORNER.offset(7, 7, 7);
@@ -57,17 +48,14 @@ public class HyperboxChunkGenerator extends ChunkGenerator
 	// don't want to spawn with head in the bedrock ceiling
 	public static final BlockPos MAX_SPAWN_CORNER = HyperboxChunkGenerator.CORNER.offset(13,12,13);
 
-	private final Registry<StructureSet> structureSets;	public Registry<StructureSet> getStructureSetRegistry() { return this.structureSets; }
-	private final Registry<Biome> biomes;	public Registry<Biome> getBiomeRegistry() { return this.biomes; }
+	private final Holder<Biome> biome; public Holder<Biome> biome() { return biome; }
 	
 	/** get from Hyperbox.INSTANCE.hyperboxChunkGeneratorCodec.get(); **/
 	public static Codec<HyperboxChunkGenerator> makeCodec()
 	{
-		return RecordCodecBuilder.create(builder -> builder.group(
-		// the registry lookup doesn't actually serialize, so we don't need a field for it
-			RegistryOps.retrieveRegistry(Registry.STRUCTURE_SET_REGISTRY).forGetter(HyperboxChunkGenerator::getStructureSetRegistry),
-			RegistryOps.retrieveRegistry(Registry.BIOME_REGISTRY).forGetter(HyperboxChunkGenerator::getBiomeRegistry)
-		).apply(builder, HyperboxChunkGenerator::new));
+		return Biome.CODEC.fieldOf("biome")
+			.xmap(HyperboxChunkGenerator::new, HyperboxChunkGenerator::biome)
+			.codec();
 	}
 	
 	// hardcoding this for now, may reconsider later
@@ -76,18 +64,14 @@ public class HyperboxChunkGenerator extends ChunkGenerator
 	// create chunk generator at runtime when dynamic dimension is created
 	public HyperboxChunkGenerator(MinecraftServer server)
 	{
-		// get dynamic registry
-		this(
-			server.registryAccess().registryOrThrow(Registry.STRUCTURE_SET_REGISTRY),
-			server.registryAccess().registryOrThrow(Registry.BIOME_REGISTRY));
+		this(server.registryAccess().registryOrThrow(Registries.BIOME).getHolderOrThrow(Hyperbox.BIOME_KEY));
 	}
 
 	// create chunk generator when dimension is loaded from the dimension registry on server init
-	public HyperboxChunkGenerator(Registry<StructureSet> structureSets, Registry<Biome> biomes)
+	public HyperboxChunkGenerator(Holder<Biome> biome)
 	{
-		super(structureSets, Optional.empty(), new FixedBiomeSource(biomes.getHolderOrThrow(Hyperbox.BIOME_KEY)));
-		this.structureSets = structureSets;
-		this.biomes = biomes;
+		super(new FixedBiomeSource(biome));
+		this.biome = biome;
 	}
 
 	// get codec
@@ -257,13 +241,6 @@ public class HyperboxChunkGenerator extends ChunkGenerator
 	public int getSpawnHeight(LevelHeightAccessor level)
 	{
 		return 1;
-	}
-	
-	// create structures
-	@Override
-	public void createStructures(RegistryAccess registries, RandomState random, StructureManager structures, ChunkAccess chunk, StructureTemplateManager templates, long seed)
-	{
-		// no structures
 	}
 	
 	// create structure references

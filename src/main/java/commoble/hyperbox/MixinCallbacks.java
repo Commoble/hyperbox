@@ -14,6 +14,7 @@ import commoble.hyperbox.dimension.HyperboxDimension;
 import commoble.hyperbox.dimension.HyperboxDimension.IterationResult;
 import commoble.hyperbox.dimension.HyperboxRegionFileStorage;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Holder;
 import net.minecraft.network.protocol.game.ClientboundSoundPacket;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
@@ -45,7 +46,7 @@ public class MixinCallbacks
 		}
 	}
 	
-	public static void onServerWorldPlaySound(ServerLevel serverLevel, @Nullable Player ignoredPlayer, double x, double y, double z, SoundEvent sound, SoundSource category, float volume, float pitch, long seed, CallbackInfo info)
+	public static void onServerWorldPlaySound(ServerLevel serverLevel, @Nullable Player ignoredPlayer, double x, double y, double z, Holder<SoundEvent> sound, SoundSource category, float volume, float pitch, long seed, CallbackInfo info)
 	{
 		MinecraftServer server = serverLevel.getServer();
 		
@@ -57,7 +58,7 @@ public class MixinCallbacks
 			if (serverPlayer == null || serverPlayer == ignoredPlayer)
 				continue;
 
-			ServerLevel playerLevel = serverPlayer.getLevel();
+			ServerLevel playerLevel = serverPlayer.serverLevel();
 			if (playerLevel == null)
 				continue;
 			
