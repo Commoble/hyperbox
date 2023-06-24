@@ -80,13 +80,13 @@ repositories {
 dependencies {
     minecraft "net.minecraftforge:forge:${mc_version}-${forge_version}"
     annotationProcessor 'org.spongepowered:mixin:0.8.5:processor'
-    
-	// compile against the JEI API but do not include it at runtime
-	// compileOnly fg.deobf("mezz.jei:jei-${mc_version}:${jei_version}:api")
-	// at runtime, use the full JEI jar
-	// runtimeOnly fg.deobf("mezz.jei:jei-${mc_version}:${jei_version}")
+
 	implementation fg.deobf("commoble.infiniverse:${infiniverse_mc_version}:${infiniverse_version}")
-	jarJar(group: "commoble:infiniverse", name: "${infiniverse_mc_version}", version: "[${infiniverse_min_version}, ${infiniverse_max_version})")
+	jarJar(group: "commoble.infiniverse", name: "${infiniverse_mc_version}", version: "[${infiniverse_min_version}, ${infiniverse_max_version})")
+}
+
+tasks.jarJar.configure {
+	classifier ''
 }
 
 // Example for how to get properties into the manifest for reading by the runtime..
