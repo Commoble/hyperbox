@@ -2,6 +2,7 @@ Hyperbox is a minecraft forge mod that adds a box that's bigger on the inside th
 
 Built jars are available here:
 * https://www.curseforge.com/minecraft/mc-mods/hyperbox
+* https://modrinth.com/mod/hyperbox
 
 A client config is available in `<your minecraft root folder>/config/hyperbox-client.toml` -- this config file allows several options to be set by the client player. This config file will be generated the first time minecraft runs with this mod installed; the default config file is as follows:
 
