@@ -1,3 +1,6 @@
+## 4.0.0.1
+* Fixed hyperbox dimensions sometimes not saving when breaking the box
+
 ## 4.0.0.0
 * Updated to 1.20.1. Requires forge 47.0.3 or higher. Old worlds are not compatible.
 * Infiniverse 1.0.0.5 is now bundled with Hyperbox via forge's Jar-In-Jar system (you don't have to install Infiniverse yourself anymore unless you need to use a newer version of infiniverse)

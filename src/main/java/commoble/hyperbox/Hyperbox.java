@@ -222,6 +222,9 @@ public class Hyperbox
 		if (shouldUnloadDimension(server, level))
 		{
 			ResourceKey<Level> key = level.dimension();
+			// apparently if we unload a dimension then pending changes don't get saved
+			// TODO fix this in infiniverse
+			level.save(null, true, false);
 			InfiniverseAPI.get().markDimensionForUnregistration(server, key);
 		}
 		
