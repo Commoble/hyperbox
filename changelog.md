@@ -1,5 +1,6 @@
 ## 4.0.0.1
 * Fixed hyperbox dimensions sometimes not saving when breaking the box
+* Fixed withers being able to destroy apertures inside hyperboxes
 
 ## 4.0.0.0
 * Updated to 1.20.1. Requires forge 47.0.3 or higher. Old worlds are not compatible.
