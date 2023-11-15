@@ -1,3 +1,6 @@
+## 4.0.1.0
+* Fixed Mood sounds not working inside hyperboxes (requires both server and client to update hyperbox)
+
 ## 4.0.0.1
 * Fixed hyperbox dimensions sometimes not saving when breaking the box
 * Fixed withers being able to destroy apertures inside hyperboxes

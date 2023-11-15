@@ -31,6 +31,7 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.sounds.SoundEvent;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.flag.FeatureFlags;
@@ -110,11 +111,14 @@ public class Hyperbox
 		this.commonConfig = ConfigHelper.register(Type.COMMON, CommonConfig::new);
 		
 		// create and set up registrars
+		DeferredRegister<SoundEvent> soundEvents = makeVanillaRegister(modBus, Registries.SOUND_EVENT);
 		DeferredRegister<Block> blocks = makeRegister(modBus, ForgeRegistries.BLOCKS);
 		DeferredRegister<Item> items = makeRegister(modBus, ForgeRegistries.ITEMS);
 		DeferredRegister<BlockEntityType<?>> tileEntities = makeRegister(modBus, ForgeRegistries.BLOCK_ENTITY_TYPES);
 		DeferredRegister<MenuType<?>> menuTypes = makeRegister(modBus, ForgeRegistries.MENU_TYPES);
 		DeferredRegister<Codec<? extends ChunkGenerator>> chunkGeneratorCodecs = makeVanillaRegister(modBus, Registries.CHUNK_GENERATOR);
+		
+		soundEvents.register("ambience", () -> SoundEvent.createVariableRangeEvent(new ResourceLocation(MODID, "ambience")));
 		
 		this.hyperboxBlock = blocks.register(Names.HYPERBOX, () -> new HyperboxBlock(BlockBehaviour.Properties.copy(Blocks.PURPUR_BLOCK).strength(2F, 1200F).isRedstoneConductor(HyperboxBlock::getIsNormalCube)));
 		this.hyperboxPreviewBlock = blocks.register(Names.HYPERBOX_PREVIEW, () -> new HyperboxBlock(BlockBehaviour.Properties.copy(Blocks.PURPUR_BLOCK).strength(2F, 1200F).isRedstoneConductor(HyperboxBlock::getIsNormalCube)));
