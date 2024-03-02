@@ -5,7 +5,6 @@
 	"refmap": "hyperbox.refmap.json",
 	"mixins": 
 	[
-		"ChunkMapMixin",
 		"IOWorkerMixin",
 		"ServerLevelMixin"
 	],

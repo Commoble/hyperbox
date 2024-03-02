@@ -38,6 +38,8 @@ The Hyperbox mod adds a block that's bigger on the inside than it is on the outs
 
 Right-click the hyperbox to travel inside it; right-click an inner aperture to exit the hyperbox.
 '''
+[[accessTransformers]]
+	file="META-INF/accesstransformer.cfg"
 # A dependency - use the . to indicate dependency for a specific modid. Dependencies are optional.
 [[dependencies.hyperbox]] #optional
     # the modid of the dependency
@@ -64,3 +66,5 @@ Right-click the hyperbox to travel inside it; right-click an inner aperture to e
     versionRange="[1.0.0.5,1.1.0.0)"
     ordering="NONE"
     side="BOTH"
+[[mixins]]
+config="hyperbox.mixins.json"

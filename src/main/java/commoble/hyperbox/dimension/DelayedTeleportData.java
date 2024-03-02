@@ -7,28 +7,33 @@ import java.util.UUID;
 import javax.annotation.Nullable;
 
 import commoble.hyperbox.Hyperbox;
-import net.minecraft.world.entity.player.Player;
-import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.server.MinecraftServer;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.world.phys.Vec3;
-import net.minecraft.world.level.Level;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.level.saveddata.SavedData;
+import net.minecraft.world.phys.Vec3;
 
 // we can't teleport players from onBlockActivated as there are assumptions
 // in the right click processing that assume a player's world does not change
 // so what we'll do is schedule a teleport to occur at the end of the world tick
 public class DelayedTeleportData extends SavedData
 {
-	public static final String DATA_KEY = Hyperbox.MODID + ":delayed_events";
+	public static final String DATA_KEY = Hyperbox.MODID + "_delayed_events";
+	
+	public static final SavedData.Factory<DelayedTeleportData> FACTORY = new SavedData.Factory<>(
+		DelayedTeleportData::create,
+		DelayedTeleportData::load,
+		null);
 	
 	private List<TeleportEntry> delayedTeleports = new ArrayList<>();
 	
 	public static DelayedTeleportData getOrCreate(ServerLevel level)
 	{
-		return level.getDataStorage().computeIfAbsent(DelayedTeleportData::load, DelayedTeleportData::create, DATA_KEY);
+		return level.getDataStorage().computeIfAbsent(FACTORY, DATA_KEY);
 	}
 	
 	public static DelayedTeleportData load(CompoundTag nbt)

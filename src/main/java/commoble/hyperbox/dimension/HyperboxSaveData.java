@@ -18,12 +18,17 @@ import net.minecraft.world.level.saveddata.SavedData;
 // WorldSavedData is used for storing extra data in ServerWorld instances
 
 // this class is used for storing information in a hyperbox world
-public class HyperboxWorldData extends SavedData
+public class HyperboxSaveData extends SavedData
 {
 	public static final String DATA_KEY = Hyperbox.MODID;
 	public static final String PARENT_WORLD_KEY = "parent_world";
 	public static final String PARENT_POS_KEY = "parent_pos";
 	public static final BlockPos DEFAULT_PARENT_POS = new BlockPos(0,65,0);
+	
+	public static final SavedData.Factory<HyperboxSaveData> FACTORY = new SavedData.Factory<>(
+		HyperboxSaveData::create,
+		HyperboxSaveData::load,
+		null);
 	
 	// ID of the world this hyperbox world's parent block is located in
 	private ResourceKey<Level> parentWorld = Level.OVERWORLD;
@@ -32,24 +37,24 @@ public class HyperboxWorldData extends SavedData
 	private BlockPos parentPos = DEFAULT_PARENT_POS;
 	public BlockPos getParentPos() { return this.parentPos; }
 	
-	public static HyperboxWorldData getOrCreate(ServerLevel world)
+	public static HyperboxSaveData getOrCreate(ServerLevel world)
 	{
-		return world.getDataStorage().computeIfAbsent(HyperboxWorldData::load, HyperboxWorldData::create, DATA_KEY);
+		return world.getDataStorage().computeIfAbsent(FACTORY, DATA_KEY);
 	}
 	
-	public static HyperboxWorldData load(CompoundTag nbt)
+	public static HyperboxSaveData load(CompoundTag nbt)
 	{
 		ResourceKey<Level> parentWorld = ResourceKey.create(Registries.DIMENSION, new ResourceLocation(nbt.getString(PARENT_WORLD_KEY)));
 		BlockPos parentPos = NbtUtils.readBlockPos(nbt.getCompound(PARENT_POS_KEY));
-		return new HyperboxWorldData(parentWorld, parentPos);
+		return new HyperboxSaveData(parentWorld, parentPos);
 	}
 	
-	public static HyperboxWorldData create()
+	public static HyperboxSaveData create()
 	{
-		return new HyperboxWorldData(Level.OVERWORLD, DEFAULT_PARENT_POS);
+		return new HyperboxSaveData(Level.OVERWORLD, DEFAULT_PARENT_POS);
 	}
 
-	protected HyperboxWorldData(ResourceKey<Level> parentWorld, BlockPos parentPos)
+	protected HyperboxSaveData(ResourceKey<Level> parentWorld, BlockPos parentPos)
 	{
 		this.parentWorld = parentWorld;
 		this.parentPos = parentPos;

@@ -1,5 +1,7 @@
 package commoble.hyperbox;
 
+import java.util.function.Supplier;
+
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
@@ -8,6 +10,7 @@ import com.mojang.serialization.Codec;
 
 import commoble.hyperbox.blocks.ApertureBlock;
 import commoble.hyperbox.blocks.ApertureBlockEntity;
+import commoble.hyperbox.blocks.C2SSaveHyperboxPacket;
 import commoble.hyperbox.blocks.HyperboxBlock;
 import commoble.hyperbox.blocks.HyperboxBlockEntity;
 import commoble.hyperbox.blocks.HyperboxBlockItem;
@@ -16,14 +19,13 @@ import commoble.hyperbox.client.ClientProxy;
 import commoble.hyperbox.dimension.DelayedTeleportData;
 import commoble.hyperbox.dimension.HyperboxChunkGenerator;
 import commoble.hyperbox.dimension.HyperboxDimension;
-import commoble.hyperbox.dimension.HyperboxWorldData;
-import commoble.hyperbox.dimension.ReturnPointCapability;
+import commoble.hyperbox.dimension.HyperboxSaveData;
+import commoble.hyperbox.dimension.ReturnPoint;
 import commoble.hyperbox.dimension.TeleportHelper;
-import commoble.hyperbox.network.C2SSaveHyperboxPacket;
-import commoble.hyperbox.network.PacketSerializer;
-import commoble.infiniverse.api.InfiniverseAPI;
-import commoble.infiniverse.api.UnregisterDimensionEvent;
+import net.commoble.infiniverse.api.InfiniverseAPI;
+import net.commoble.infiniverse.api.UnregisterDimensionEvent;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.core.Registry;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
@@ -32,8 +34,6 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvent;
-import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.flag.FeatureFlags;
 import net.minecraft.world.inventory.MenuType;
 import net.minecraft.world.item.BlockItem;
@@ -49,25 +49,21 @@ import net.minecraft.world.level.block.state.BlockBehaviour;
 import net.minecraft.world.level.chunk.ChunkGenerator;
 import net.minecraft.world.level.dimension.DimensionType;
 import net.minecraft.world.level.dimension.LevelStem;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.common.MinecraftForge;
-import net.minecraftforge.common.capabilities.RegisterCapabilitiesEvent;
-import net.minecraftforge.event.AttachCapabilitiesEvent;
-import net.minecraftforge.event.BuildCreativeModeTabContentsEvent;
-import net.minecraftforge.event.TickEvent;
-import net.minecraftforge.event.TickEvent.LevelTickEvent;
-import net.minecraftforge.eventbus.api.EventPriority;
-import net.minecraftforge.eventbus.api.IEventBus;
-import net.minecraftforge.fml.common.Mod;
-import net.minecraftforge.fml.config.ModConfig.Type;
-import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
-import net.minecraftforge.fml.loading.FMLEnvironment;
-import net.minecraftforge.network.NetworkRegistry;
-import net.minecraftforge.network.simple.SimpleChannel;
-import net.minecraftforge.registries.DeferredRegister;
-import net.minecraftforge.registries.ForgeRegistries;
-import net.minecraftforge.registries.IForgeRegistry;
-import net.minecraftforge.registries.RegistryObject;
+import net.neoforged.bus.api.EventPriority;
+import net.neoforged.bus.api.IEventBus;
+import net.neoforged.fml.common.Mod;
+import net.neoforged.fml.config.ModConfig;
+import net.neoforged.fml.loading.FMLEnvironment;
+import net.neoforged.neoforge.attachment.AttachmentType;
+import net.neoforged.neoforge.capabilities.BlockCapability;
+import net.neoforged.neoforge.capabilities.RegisterCapabilitiesEvent;
+import net.neoforged.neoforge.common.NeoForge;
+import net.neoforged.neoforge.event.BuildCreativeModeTabContentsEvent;
+import net.neoforged.neoforge.event.TickEvent;
+import net.neoforged.neoforge.event.TickEvent.LevelTickEvent;
+import net.neoforged.neoforge.network.event.RegisterPayloadHandlerEvent;
+import net.neoforged.neoforge.registries.DeferredRegister;
+import net.neoforged.neoforge.registries.NeoForgeRegistries;
 
 // The value here should match an entry in the META-INF/mods.toml file
 @Mod(Hyperbox.MODID)
@@ -75,13 +71,6 @@ public class Hyperbox
 {
 	public static final String MODID = "hyperbox";
 	public static Hyperbox INSTANCE;
-	
-	public static final String PROTOCOL_VERSION = "1";
-	public static final SimpleChannel CHANNEL = NetworkRegistry.newSimpleChannel(
-		new ResourceLocation(MODID,MODID),
-		() -> PROTOCOL_VERSION,
-		PROTOCOL_VERSION::equals,
-		PROTOCOL_VERSION::equals);
 	
 	public static final ResourceLocation HYPERBOX_ID = new ResourceLocation(MODID, Names.HYPERBOX);
 	// keys for the hyperbox dimension stuff
@@ -91,84 +80,99 @@ public class Hyperbox
 	public static final ResourceKey<DimensionType> DIMENSION_TYPE_KEY = ResourceKey.create(Registries.DIMENSION_TYPE, HYPERBOX_ID);
 	
 	public final CommonConfig commonConfig;
-	public final RegistryObject<HyperboxBlock> hyperboxBlock;
+	public final Supplier<HyperboxBlock> hyperboxBlock;
 	// the placement preview renderer gets the color handler from the player's currently held item instead of the blockstate
-	public final RegistryObject<HyperboxBlock> hyperboxPreviewBlock;
-	public final RegistryObject<ApertureBlock> apertureBlock;
-	public final RegistryObject<BlockItem> hyperboxItem;
-	public final RegistryObject<BlockEntityType<HyperboxBlockEntity>> hyperboxBlockEntityType;
-	public final RegistryObject<BlockEntityType<ApertureBlockEntity>> apertureBlockEntityType;
-	public final RegistryObject<MenuType<HyperboxMenu>> hyperboxMenuType;
-	public final RegistryObject<Codec<HyperboxChunkGenerator>> hyperboxChunkGeneratorCodec;
+	public final Supplier<HyperboxBlock> hyperboxPreviewBlock;
+	public final Supplier<ApertureBlock> apertureBlock;
+	public final Supplier<BlockItem> hyperboxItem;
+	public final Supplier<BlockEntityType<HyperboxBlockEntity>> hyperboxBlockEntityType;
+	public final Supplier<BlockEntityType<ApertureBlockEntity>> apertureBlockEntityType;
+	public final Supplier<MenuType<HyperboxMenu>> hyperboxMenuType;
+	public final Supplier<Codec<HyperboxChunkGenerator>> hyperboxChunkGeneratorCodec;
+	public final Supplier<AttachmentType<ReturnPoint>> returnPointAttachment;
 	
-	public Hyperbox()
+	public Hyperbox(IEventBus modBus)
 	{
 		INSTANCE = this;
 		
-		IEventBus modBus = FMLJavaModLoadingContext.get().getModEventBus();
-		IEventBus forgeBus = MinecraftForge.EVENT_BUS;
+		IEventBus forgeBus = NeoForge.EVENT_BUS;
 		
-		this.commonConfig = ConfigHelper.register(Type.COMMON, CommonConfig::new);
+		this.commonConfig = ConfigHelper.register(ModConfig.Type.COMMON, CommonConfig::new);
 		
 		// create and set up registrars
-		DeferredRegister<SoundEvent> soundEvents = makeVanillaRegister(modBus, Registries.SOUND_EVENT);
-		DeferredRegister<Block> blocks = makeRegister(modBus, ForgeRegistries.BLOCKS);
-		DeferredRegister<Item> items = makeRegister(modBus, ForgeRegistries.ITEMS);
-		DeferredRegister<BlockEntityType<?>> tileEntities = makeRegister(modBus, ForgeRegistries.BLOCK_ENTITY_TYPES);
-		DeferredRegister<MenuType<?>> menuTypes = makeRegister(modBus, ForgeRegistries.MENU_TYPES);
-		DeferredRegister<Codec<? extends ChunkGenerator>> chunkGeneratorCodecs = makeVanillaRegister(modBus, Registries.CHUNK_GENERATOR);
+		DeferredRegister<SoundEvent> soundEvents = defreg(modBus, Registries.SOUND_EVENT);
+		DeferredRegister<Block> blocks = defreg(modBus, Registries.BLOCK);
+		DeferredRegister<Item> items = defreg(modBus, Registries.ITEM);
+		DeferredRegister<BlockEntityType<?>> tileEntities = defreg(modBus, Registries.BLOCK_ENTITY_TYPE);
+		DeferredRegister<MenuType<?>> menuTypes = defreg(modBus, Registries.MENU);
+		DeferredRegister<Codec<? extends ChunkGenerator>> chunkGeneratorCodecs = defreg(modBus, Registries.CHUNK_GENERATOR);
+		DeferredRegister<AttachmentType<?>> attachmentTypes = defreg(modBus, NeoForgeRegistries.Keys.ATTACHMENT_TYPES);
 		
 		soundEvents.register("ambience", () -> SoundEvent.createVariableRangeEvent(new ResourceLocation(MODID, "ambience")));
 		
-		this.hyperboxBlock = blocks.register(Names.HYPERBOX, () -> new HyperboxBlock(BlockBehaviour.Properties.copy(Blocks.PURPUR_BLOCK).strength(2F, 1200F).isRedstoneConductor(HyperboxBlock::getIsNormalCube)));
-		this.hyperboxPreviewBlock = blocks.register(Names.HYPERBOX_PREVIEW, () -> new HyperboxBlock(BlockBehaviour.Properties.copy(Blocks.PURPUR_BLOCK).strength(2F, 1200F).isRedstoneConductor(HyperboxBlock::getIsNormalCube)));
+		this.hyperboxBlock = blocks.register(Names.HYPERBOX, () -> new HyperboxBlock(BlockBehaviour.Properties.ofFullCopy(Blocks.PURPUR_BLOCK).strength(2F, 1200F).isRedstoneConductor(HyperboxBlock::getIsNormalCube)));
+		this.hyperboxPreviewBlock = blocks.register(Names.HYPERBOX_PREVIEW, () -> new HyperboxBlock(BlockBehaviour.Properties.ofFullCopy(Blocks.PURPUR_BLOCK).strength(2F, 1200F).isRedstoneConductor(HyperboxBlock::getIsNormalCube)));
 		this.hyperboxItem = items.register(Names.HYPERBOX, () -> new HyperboxBlockItem(this.hyperboxBlock.get(), new Item.Properties()));
 		this.hyperboxBlockEntityType = tileEntities.register(Names.HYPERBOX, () -> BlockEntityType.Builder.of(HyperboxBlockEntity::create, this.hyperboxBlock.get()).build(null));
 		
-		this.apertureBlock = blocks.register(Names.APERTURE, () -> new ApertureBlock(BlockBehaviour.Properties.copy(Blocks.BARRIER).lightLevel(state -> 6).isRedstoneConductor(HyperboxBlock::getIsNormalCube)));
+		this.apertureBlock = blocks.register(Names.APERTURE, () -> new ApertureBlock(BlockBehaviour.Properties.ofFullCopy(Blocks.BARRIER).lightLevel(state -> 6).isRedstoneConductor(HyperboxBlock::getIsNormalCube)));
 		this.apertureBlockEntityType = tileEntities.register(Names.APERTURE, () -> BlockEntityType.Builder.of(ApertureBlockEntity::create, this.apertureBlock.get()).build(null));
 		
 		this.hyperboxMenuType = menuTypes.register(Names.HYPERBOX, () -> new MenuType<HyperboxMenu>(HyperboxMenu::makeClientMenu, FeatureFlags.VANILLA_SET));
 		
 		this.hyperboxChunkGeneratorCodec = chunkGeneratorCodecs.register(Names.HYPERBOX, HyperboxChunkGenerator::makeCodec);
 		
+		this.returnPointAttachment = attachmentTypes.register(Names.RETURN_POINT, () -> AttachmentType.builder(() -> ReturnPoint.EMPTY)
+			.serialize(ReturnPoint.CODEC, rp -> !rp.data().isEmpty())
+			.copyOnDeath()
+			.comparator(ReturnPoint::equals)
+			.copyHandler((h,t) -> t)
+			.build());
+		
 		// subscribe event handlers
-		modBus.addListener(this::onRegisterCapabilities);
+		modBus.addListener(EventPriority.LOW, this::registerDelegateCapabilities);
+		modBus.addListener(this::onRegisterPayloads);
 		modBus.addListener(this::onBuildTabContents);
 		forgeBus.addListener(this::onUnregisterDimension);
 		forgeBus.addListener(EventPriority.HIGH, this::onHighPriorityWorldTick);
-		forgeBus.addGenericListener(Entity.class, this::onAttachEntityCapabilities);
 		
 		// subscribe client-build event handlers
-		if (FMLEnvironment.dist == Dist.CLIENT)
+		if (FMLEnvironment.dist.isClient())
 		{
 			ClientProxy.doClientModInit(modBus, forgeBus);
 		}
-		
-		// register packets
-		int id = 0;
-		PacketSerializer.register(id++, CHANNEL, C2SSaveHyperboxPacket.SERIALIZER);
 	}
 	
-	private void onRegisterCapabilities(RegisterCapabilitiesEvent event)
+	private void registerDelegateCapabilities(RegisterCapabilitiesEvent event)
 	{
-		event.register(ReturnPointCapability.class);
+		for (var blockCapability : BlockCapability.getAll())
+		{
+			genericallyRegisterBlockCap(event, blockCapability);
+		}
+	}
+	
+	@SuppressWarnings("unchecked")
+	private <T,C> void genericallyRegisterBlockCap(RegisterCapabilitiesEvent event, BlockCapability<T,C> blockCap)
+	{
+		event.registerBlockEntity(blockCap, hyperboxBlockEntityType.get(), (be, context) -> context instanceof Direction direction
+			? be.getCapability((BlockCapability<T,Direction>)blockCap, direction)
+			: null);
+		event.registerBlockEntity(blockCap, apertureBlockEntityType.get(), (be, context) -> context instanceof Direction direction
+			? be.getCapability((BlockCapability<T,Direction>)blockCap, direction)
+			: null);
+	}
+	
+	private void onRegisterPayloads(RegisterPayloadHandlerEvent event)
+	{
+		event.registrar(MODID)
+			.play(HYPERBOX_ID, C2SSaveHyperboxPacket::read, C2SSaveHyperboxPacket::handle);
 	}
 	
 	private void onBuildTabContents(BuildCreativeModeTabContentsEvent event)
 	{
 		if (event.getTabKey() == CreativeModeTabs.FUNCTIONAL_BLOCKS || event.getTabKey() == CreativeModeTabs.REDSTONE_BLOCKS)
 		{
-			event.accept(this.hyperboxItem);			
-		}
-	}
-	
-	private void onAttachEntityCapabilities(AttachCapabilitiesEvent<Entity> event)
-	{
-		Entity entity = event.getObject();
-		if (entity instanceof Player)
-		{
-			event.addCapability(ReturnPointCapability.ID, new ReturnPointCapability());
+			event.accept(this.hyperboxItem.get());			
 		}
 	}
 	
@@ -226,9 +230,6 @@ public class Hyperbox
 		if (shouldUnloadDimension(server, level))
 		{
 			ResourceKey<Level> key = level.dimension();
-			// apparently if we unload a dimension then pending changes don't get saved
-			// TODO fix this in infiniverse
-			level.save(null, true, false);
 			InfiniverseAPI.get().markDimensionForUnregistration(server, key);
 		}
 		
@@ -248,7 +249,7 @@ public class Hyperbox
 		if ((targetLevel.getGameTime() + targetLevel.hashCode()) % 20 != 0)
 			return false;
 		
-		HyperboxWorldData hyperboxData = HyperboxWorldData.getOrCreate(targetLevel);
+		HyperboxSaveData hyperboxData = HyperboxSaveData.getOrCreate(targetLevel);
 		ResourceKey<Level> parentKey = hyperboxData.getParentWorld();
 		BlockPos parentPos = hyperboxData.getParentPos();
 		
@@ -280,7 +281,7 @@ public class Hyperbox
 	private static boolean shouldHyperboxChunkBeForced(ServerLevel hyperboxLevel)
 	{
 		MinecraftServer server = hyperboxLevel.getServer();
-		HyperboxWorldData data = HyperboxWorldData.getOrCreate(hyperboxLevel);
+		HyperboxSaveData data = HyperboxSaveData.getOrCreate(hyperboxLevel);
 		ResourceKey<Level> parentKey = data.getParentWorld();
 		ServerLevel parentLevel = server.getLevel(parentKey);
 		if (parentLevel == null)
@@ -291,16 +292,9 @@ public class Hyperbox
 	}
 	
 	// create and subscribe a forge DeferredRegister
-	private static <T> DeferredRegister<T> makeRegister(IEventBus modBus, IForgeRegistry<T> registry)
+	private static <T> DeferredRegister<T> defreg(IEventBus modBus, ResourceKey<Registry<T>> registry)
 	{
 		DeferredRegister<T> register = DeferredRegister.create(registry, MODID);
-		register.register(modBus);
-		return register;
-	}
-	
-	private static <T> DeferredRegister<T> makeVanillaRegister(IEventBus modBus, ResourceKey<Registry<T>> registryKey)
-	{
-		DeferredRegister<T> register = DeferredRegister.create(registryKey, MODID);
 		register.register(modBus);
 		return register;
 	}

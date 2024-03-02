@@ -5,7 +5,6 @@ import commoble.hyperbox.Hyperbox;
 import commoble.hyperbox.RotationHelper;
 import commoble.hyperbox.blocks.HyperboxBlock;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.screens.MenuScreens;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -17,13 +16,13 @@ import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
-import net.minecraftforge.client.event.EntityRenderersEvent.RegisterRenderers;
-import net.minecraftforge.client.event.RegisterColorHandlersEvent;
-import net.minecraftforge.client.event.RegisterDimensionSpecialEffectsEvent;
-import net.minecraftforge.client.event.RenderHighlightEvent;
-import net.minecraftforge.eventbus.api.IEventBus;
-import net.minecraftforge.fml.config.ModConfig;
-import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
+import net.neoforged.bus.api.IEventBus;
+import net.neoforged.fml.config.ModConfig;
+import net.neoforged.neoforge.client.event.EntityRenderersEvent.RegisterRenderers;
+import net.neoforged.neoforge.client.event.RegisterColorHandlersEvent;
+import net.neoforged.neoforge.client.event.RegisterDimensionSpecialEffectsEvent;
+import net.neoforged.neoforge.client.event.RegisterMenuScreensEvent;
+import net.neoforged.neoforge.client.event.RenderHighlightEvent;
 
 public class ClientProxy
 {
@@ -34,7 +33,7 @@ public class ClientProxy
 	{
 		clientConfig = ConfigHelper.register(ModConfig.Type.CLIENT, ClientConfig::new);
 
-		modBus.addListener(ClientProxy::onClientSetup);
+		modBus.addListener(ClientProxy::onRegisterScreens);
 		modBus.addListener(ClientProxy::onRegisterDimensionSpecialEffects);
 		modBus.addListener(ClientProxy::onRegisterRenderers);
 		modBus.addListener(ClientProxy::onRegisterBlockColors);
@@ -42,15 +41,10 @@ public class ClientProxy
 		forgeBus.addListener(ClientProxy::onHighlightBlock);
 	}
 	
-	private static void onClientSetup(FMLClientSetupEvent event)
-	{
-		event.enqueueWork(ClientProxy::afterClientSetup);
-	}
-	
 	// do non-threadsafe stuff on main thread (client setup is off-thread)
-	private static void afterClientSetup()
+	private static void onRegisterScreens(RegisterMenuScreensEvent event)
 	{
-		MenuScreens.register(Hyperbox.INSTANCE.hyperboxMenuType.get(), HyperboxScreen::new);
+		event.register(Hyperbox.INSTANCE.hyperboxMenuType.get(), HyperboxScreen::new);
 	}
 	
 	private static void onRegisterRenderers(RegisterRenderers event)

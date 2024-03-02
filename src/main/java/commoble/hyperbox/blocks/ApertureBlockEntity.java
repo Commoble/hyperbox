@@ -3,7 +3,7 @@ package commoble.hyperbox.blocks;
 import javax.annotation.Nullable;
 
 import commoble.hyperbox.Hyperbox;
-import commoble.hyperbox.dimension.HyperboxWorldData;
+import commoble.hyperbox.dimension.HyperboxSaveData;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
@@ -18,8 +18,8 @@ import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraftforge.common.capabilities.Capability;
-import net.minecraftforge.common.util.LazyOptional;
+import net.neoforged.neoforge.capabilities.BlockCapability;
+import net.neoforged.neoforge.event.EventHooks;
 
 public class ApertureBlockEntity extends BlockEntity
 {
@@ -42,13 +42,13 @@ public class ApertureBlockEntity extends BlockEntity
 		super(type, pos, state);
 	}
 
-	@Override
-	public <T> LazyOptional<T> getCapability(Capability<T> cap, @Nullable Direction side)
+	@Nullable
+	public <T> T getCapability(BlockCapability<T, Direction> sidedCap, Direction side)
 	{
-		if (side != null && this.level instanceof ServerLevel serverLevel)
+		if (this.level instanceof ServerLevel serverLevel)
 		{
 			MinecraftServer server = serverLevel.getServer();
-			HyperboxWorldData data = HyperboxWorldData.getOrCreate(serverLevel);
+			HyperboxSaveData data = HyperboxSaveData.getOrCreate(serverLevel);
 			BlockPos parentPos = data.getParentPos();
 			ResourceKey<Level> parentLevelKey = data.getParentWorld();
 			ServerLevel parentLevel = server.getLevel(parentLevelKey);
@@ -61,17 +61,17 @@ public class ApertureBlockEntity extends BlockEntity
 				Block parentBlock = parentState.getBlock();
 				if (parentBlock instanceof HyperboxBlock hyperboxBlock)
 				{
+					parentLevel.registerCapabilityListener(parentPos, () -> {
+						serverLevel.invalidateCapabilities(this.getBlockPos());
+						return false;
+					});
 					Direction hyperboxFace = hyperboxBlock.getCurrentFacing(parentState, side.getOpposite());
 					BlockPos delegatePos = parentPos.relative(hyperboxFace);
-					BlockEntity delegateBlockEntity = parentLevel.getBlockEntity(delegatePos);
-					if (delegateBlockEntity != null)
-					{
-						return delegateBlockEntity.getCapability(cap, hyperboxFace.getOpposite());
-					}
+					return parentLevel.getCapability(sidedCap, delegatePos, hyperboxFace.getOpposite());
 				}
 			}
 		}
-		return super.getCapability(cap, side);
+		return null;
 	}
 	
 	public int getColor()
@@ -116,7 +116,7 @@ public class ApertureBlockEntity extends BlockEntity
 			// notify neighbors so they react to the redstone output change
 			// notify neighbors so they react to the redstone output change
 			Direction outputSide = thisState.getValue(ApertureBlock.FACING);
-			if (net.minecraftforge.event.ForgeEventFactory.onNeighborNotify(this.level, this.worldPosition, thisState, java.util.EnumSet.of(outputSide), true).isCanceled())
+			if (EventHooks.onNeighborNotify(this.level, this.worldPosition, thisState, java.util.EnumSet.of(outputSide), true).isCanceled())
 				return;
 			BlockPos adjacentPos = this.worldPosition.relative(outputSide);
 			Block thisBlock = thisState.getBlock();

@@ -1,7 +1,7 @@
 package commoble.hyperbox.client;
 
-import net.minecraftforge.common.ForgeConfigSpec;
-import net.minecraftforge.common.ForgeConfigSpec.ConfigValue;
+import net.neoforged.neoforge.common.ModConfigSpec;
+import net.neoforged.neoforge.common.ModConfigSpec.ConfigValue;
 
 public class ClientConfig
 {
@@ -10,7 +10,7 @@ public class ClientConfig
 	public final ConfigValue<Double> nameplateRenderDistance;
 	public final ConfigValue<Double> nameplateSneakingRenderDistance;
 
-	public ClientConfig(ForgeConfigSpec.Builder builder)
+	public ClientConfig(ModConfigSpec.Builder builder)
 	{
 		builder.push("block_rendering");
 		this.showPlacementPreview = builder

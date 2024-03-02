@@ -3,8 +3,8 @@ package commoble.hyperbox.client;
 import com.mojang.blaze3d.platform.InputConstants;
 
 import commoble.hyperbox.Hyperbox;
+import commoble.hyperbox.blocks.C2SSaveHyperboxPacket;
 import commoble.hyperbox.blocks.HyperboxMenu;
-import commoble.hyperbox.network.C2SSaveHyperboxPacket;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.ComponentPath;
 import net.minecraft.client.gui.GuiGraphics;
@@ -20,6 +20,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Inventory;
+import net.neoforged.neoforge.network.PacketDistributor;
 
 public class HyperboxScreen extends AbstractContainerScreen<HyperboxMenu>
 {
@@ -62,19 +63,16 @@ public class HyperboxScreen extends AbstractContainerScreen<HyperboxMenu>
 		this.dimensionEdit.setMaxLength(120);
 		this.addRenderableWidget(this.dimensionEdit);
 		
-		this.useDefaultNameCheckbox = new Checkbox(this.width/2 - 152, 80, 20, 20, USE_DEFAULT_NAME_LABEL, true)
-		{
-			@Override
-			public void onPress()
-			{
-				super.onPress();
-				HyperboxScreen.this.nameEdit.setEditable(!this.selected());
-				if (this.selected())
+		this.useDefaultNameCheckbox = Checkbox.builder(USE_DEFAULT_NAME_LABEL, this.font)
+			.pos(this.width/2 - 152, 80)
+			.onValueChange((box, selected) -> {
+				HyperboxScreen.this.nameEdit.setEditable(!selected);
+				if (selected)
 				{
 					HyperboxScreen.this.nameEdit.setValue(HyperboxScreen.this.dimensionEdit.getValue());
 				}
-			}
-		};
+			})
+			.build();
 		this.addRenderableWidget(this.useDefaultNameCheckbox);
 		
 		this.nameEdit = new EditBox(this.font, this.width/2 - 152, 120, 300, 20, EDIT_NAME_LABEL);
@@ -99,14 +97,6 @@ public class HyperboxScreen extends AbstractContainerScreen<HyperboxMenu>
 			.build();
 		this.addRenderableWidget(this.cancelButton);
 		this.setInitialFocus(this.dimensionEdit);
-	}
-	
-	@Override
-	protected void containerTick()
-	{
-		super.containerTick();
-		this.dimensionEdit.tick();
-		this.nameEdit.tick();
 	}
 
 	@Override
@@ -164,7 +154,7 @@ public class HyperboxScreen extends AbstractContainerScreen<HyperboxMenu>
 	@Override
 	public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTicks)
 	{
-		this.renderBackground(graphics);
+		super.render(graphics, mouseX, mouseY, partialTicks);
 		graphics.drawCenteredString(this.font, this.title, this.width / 2, 10, 16777215);
 		graphics.drawString(this.font, EDIT_DIMENSION_LABEL, this.width/2 - 152, 30, 10526880);
 		graphics.drawString(this.font, EDIT_NAME_LABEL, this.width/2 - 152, 110, 10526880);
@@ -192,7 +182,7 @@ public class HyperboxScreen extends AbstractContainerScreen<HyperboxMenu>
 		this.saveAndExitButton.active = false;
 		String dimensionId = this.dimensionEdit.getValue();
 		String name = this.nameEdit.getValue();
-		Hyperbox.CHANNEL.sendToServer(new C2SSaveHyperboxPacket(dimensionId, name, enterImmediate));
+		PacketDistributor.SERVER.noArg().send(new C2SSaveHyperboxPacket(dimensionId, name, enterImmediate));
 	}
 	
 	protected boolean isDimensionIdValid(String dimensionId)

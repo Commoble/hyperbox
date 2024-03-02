@@ -1,39 +1,49 @@
-package commoble.hyperbox.network;
-
-import java.util.function.Consumer;
+package commoble.hyperbox.blocks;
 
 import commoble.hyperbox.Hyperbox;
-import commoble.hyperbox.blocks.HyperboxMenu;
 import net.minecraft.core.Direction;
 import net.minecraft.core.registries.Registries;
+import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
-import net.minecraftforge.network.NetworkEvent;
-import net.minecraftforge.network.NetworkEvent.Context;
+import net.neoforged.neoforge.network.handling.PlayPayloadContext;
 
-public record C2SSaveHyperboxPacket(String dimension, String name, boolean enterImmediate) implements Consumer<NetworkEvent.Context>
+public record C2SSaveHyperboxPacket(String dimension, String name, boolean enterImmediate) implements CustomPacketPayload
 {
-	public static final PacketSerializer<C2SSaveHyperboxPacket> SERIALIZER = new PacketSerializer<>(
-		C2SSaveHyperboxPacket.class,
-		(packet,buffer) -> {
-			buffer.writeUtf(packet.dimension);
-			buffer.writeUtf(packet.name);
-			buffer.writeBoolean(packet.enterImmediate);
-		},
-		(buffer) -> new C2SSaveHyperboxPacket(
-			buffer.readUtf(),
-			buffer.readUtf(),
-			buffer.readBoolean()));
+	public static final ResourceLocation ID = new ResourceLocation(Hyperbox.MODID, "save_hyperbox");
 	
 	@Override
-	public void accept(Context context)
+	public void write(FriendlyByteBuf buffer)
 	{
-		ServerPlayer player = context.getSender();
-		if (player == null || !(player.containerMenu instanceof HyperboxMenu menu))
+		buffer.writeUtf(this.dimension);
+		buffer.writeUtf(this.name);
+		buffer.writeBoolean(this.enterImmediate);
+	}
+	
+	public static C2SSaveHyperboxPacket read(FriendlyByteBuf buffer)
+	{
+		return new C2SSaveHyperboxPacket(
+			buffer.readUtf(),
+			buffer.readUtf(),
+			buffer.readBoolean());
+	}
+
+	@Override
+	public ResourceLocation id()
+	{
+		return ID;
+	}
+
+	public void handle(PlayPayloadContext context)
+	{
+		Player p = context.player().orElse(null);
+		if (!(p instanceof ServerPlayer player) || !(player.containerMenu instanceof HyperboxMenu menu))
 		{
 			// don't do anything else if menu isn't open (averts possible spam from bad actors)
 			return;

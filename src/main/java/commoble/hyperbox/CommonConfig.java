@@ -1,13 +1,13 @@
 package commoble.hyperbox;
 
-import net.minecraftforge.common.ForgeConfigSpec;
-import net.minecraftforge.common.ForgeConfigSpec.ConfigValue;
+import net.neoforged.neoforge.common.ModConfigSpec;
+import net.neoforged.neoforge.common.ModConfigSpec.ConfigValue;
 
 public class CommonConfig
 {
 	public final ConfigValue<Boolean> autoForceHyperboxChunks;
 	
-	public CommonConfig(ForgeConfigSpec.Builder builder)
+	public CommonConfig(ModConfigSpec.Builder builder)
 	{
 		builder.push("world_management");
 		this.autoForceHyperboxChunks = builder

@@ -4,7 +4,7 @@ import java.util.Optional;
 
 import commoble.hyperbox.Hyperbox;
 import commoble.hyperbox.dimension.DelayedTeleportData;
-import commoble.hyperbox.dimension.HyperboxWorldData;
+import commoble.hyperbox.dimension.HyperboxSaveData;
 import commoble.hyperbox.dimension.SpawnPointHelper;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -60,7 +60,7 @@ public class ApertureBlock extends Block implements EntityBlock
 		{
 			MinecraftServer server = serverPlayer.server;
 			
-			HyperboxWorldData data = HyperboxWorldData.getOrCreate(serverLevel);
+			HyperboxSaveData data = HyperboxSaveData.getOrCreate(serverLevel);
 			ResourceKey<Level> parentKey = data.getParentWorld();
 			BlockPos parentPos = data.getParentPos();
 			BlockPos targetPos = parentPos;
@@ -155,7 +155,7 @@ public class ApertureBlock extends Block implements EntityBlock
 	public static Optional<HyperboxBlockEntity> getLinkedHyperbox(ServerLevel level, BlockPos thisPos)
 	{
 		MinecraftServer server = level.getServer();
-		HyperboxWorldData data = HyperboxWorldData.getOrCreate(level);
+		HyperboxSaveData data = HyperboxSaveData.getOrCreate(level);
 		BlockPos parentPos = data.getParentPos();
 		ResourceKey<Level> parentLevelKey = data.getParentWorld();
 		ServerLevel parentLevel = server.getLevel(parentLevelKey);

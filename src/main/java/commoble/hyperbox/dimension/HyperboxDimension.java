@@ -70,7 +70,7 @@ public class HyperboxDimension
 		while (nextWorld.dimensionType() == hyperboxDimensionType && !foundKeys.contains(nextKey))
 		{
 			foundKeys.add(nextKey);
-			HyperboxWorldData data = HyperboxWorldData.getOrCreate(nextWorld);
+			HyperboxSaveData data = HyperboxSaveData.getOrCreate(nextWorld);
 			ResourceKey<Level> parentKey = data.getParentWorld();
 			ServerLevel parentWorld = server.getLevel(parentKey);
 			iterations++;

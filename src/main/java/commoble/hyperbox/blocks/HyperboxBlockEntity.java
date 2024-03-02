@@ -8,10 +8,10 @@ import commoble.hyperbox.Hyperbox;
 import commoble.hyperbox.dimension.DelayedTeleportData;
 import commoble.hyperbox.dimension.HyperboxChunkGenerator;
 import commoble.hyperbox.dimension.HyperboxDimension;
-import commoble.hyperbox.dimension.HyperboxWorldData;
-import commoble.hyperbox.dimension.ReturnPointCapability;
+import commoble.hyperbox.dimension.HyperboxSaveData;
+import commoble.hyperbox.dimension.ReturnPoint;
 import commoble.hyperbox.dimension.SpawnPointHelper;
-import commoble.infiniverse.api.InfiniverseAPI;
+import net.commoble.infiniverse.api.InfiniverseAPI;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.registries.Registries;
@@ -33,9 +33,8 @@ import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.dimension.DimensionType;
 import net.minecraft.world.phys.Vec3;
-import net.minecraftforge.common.capabilities.Capability;
-import net.minecraftforge.common.util.LazyOptional;
-import net.minecraftforge.network.NetworkHooks;
+import net.neoforged.neoforge.capabilities.BlockCapability;
+import net.neoforged.neoforge.event.EventHooks;
 
 public class HyperboxBlockEntity extends BlockEntity implements Nameable
 {
@@ -155,7 +154,7 @@ public class HyperboxBlockEntity extends BlockEntity implements Nameable
 		return this.levelKey.map(key ->
 		{
 			ServerLevel targetWorld = this.getChildWorld(server, key);
-			HyperboxWorldData.getOrCreate(targetWorld).setWorldPos(server, targetWorld, targetWorld.dimension(), this.level.dimension(), this.worldPosition, this.getColor());
+			HyperboxSaveData.getOrCreate(targetWorld).setWorldPos(server, targetWorld, targetWorld.dimension(), this.level.dimension(), this.worldPosition, this.getColor());
 			return targetWorld;
 		})
 			.orElse(null);
@@ -172,30 +171,27 @@ public class HyperboxBlockEntity extends BlockEntity implements Nameable
 		return Mth.clamp(output,0,15);
 	}
 
-	@Override
-	public <T> LazyOptional<T> getCapability(Capability<T> cap, @Nullable Direction worldSpaceFace)
+	@Nullable
+	public <T> T getCapability(BlockCapability<T, Direction> sidedCap, Direction worldSpaceFace)
 	{
-		if (worldSpaceFace != null)
+		BlockState thisState = this.getBlockState();
+		Block thisBlock = thisState.getBlock();
+		// delegate to the capability of the block facing the linked aperture in the hyperspace cube
+		if (thisBlock instanceof HyperboxBlock hyperboxBlock && this.level instanceof ServerLevel serverLevel)
 		{
-			BlockState thisState = this.getBlockState();
-			Block thisBlock = thisState.getBlock();
-			// delegate to the capability of the block facing the linked aperture in the hyperspace cube
-			if (thisBlock instanceof HyperboxBlock hyperboxBlock && this.level instanceof ServerLevel serverLevel)
+			ServerLevel targetLevel = this.getLevelIfKeySet(serverLevel.getServer());
+			if (targetLevel != null)
 			{
-				ServerLevel targetLevel = this.getLevelIfKeySet(serverLevel.getServer());
-				if (targetLevel != null)
-				{
-					BlockPos targetPos = hyperboxBlock.getPosAdjacentToAperture(this.getBlockState(), worldSpaceFace);
-					BlockEntity delegateBlockEntity = targetLevel.getBlockEntity(targetPos);
-					if (delegateBlockEntity != null)
-					{
-						Direction rotatedDirection = hyperboxBlock.getOriginalFace(thisState, worldSpaceFace);
-						return delegateBlockEntity.getCapability(cap, rotatedDirection);
-					}
-				}
+				BlockPos targetPos = hyperboxBlock.getPosAdjacentToAperture(this.getBlockState(), worldSpaceFace);
+				Direction rotatedDirection = hyperboxBlock.getOriginalFace(thisState, worldSpaceFace);
+				targetLevel.registerCapabilityListener(targetPos, () -> {
+					serverLevel.invalidateCapabilities(this.getBlockPos());
+					return false;
+				});
+				return level.getCapability(sidedCap, targetPos, rotatedDirection);
 			}
 		}
-		return super.getCapability(cap, worldSpaceFace);
+		return null;
 	}
 	
 	public Optional<ApertureBlockEntity> getAperture(MinecraftServer server, Direction sideOfChildLevel)
@@ -226,7 +222,7 @@ public class HyperboxBlockEntity extends BlockEntity implements Nameable
 				this.setChanged();	// mark te as needing its data saved
 				this.level.sendBlockUpdated(this.worldPosition, thisState, thisState, 3); // mark te as needing data synced
 				// notify neighbors so they react to the redstone output change
-				if (net.minecraftforge.event.ForgeEventFactory.onNeighborNotify(this.level, this.worldPosition, thisState, java.util.EnumSet.of(originalFace), true).isCanceled())
+				if (EventHooks.onNeighborNotify(this.level, this.worldPosition, thisState, java.util.EnumSet.of(originalFace), true).isCanceled())
 					return;
 				BlockPos adjacentPos = this.worldPosition.relative(worldSpaceFace);
 				this.level.neighborChanged(adjacentPos, thisBlock, this.worldPosition);
@@ -243,7 +239,7 @@ public class HyperboxBlockEntity extends BlockEntity implements Nameable
 		if (targetLevel == null)
 		{
 			// if hyperbox doesn't have a dimension bound yet
-			NetworkHooks.openScreen(serverPlayer, HyperboxMenu.makeServerMenu(this));
+			serverPlayer.openMenu(HyperboxMenu.makeServerMenu(this));
 		}
 		else
 		{
@@ -253,9 +249,7 @@ public class HyperboxBlockEntity extends BlockEntity implements Nameable
 			DimensionType hyperboxDimensionType = HyperboxDimension.getDimensionType(server);
 			if (hyperboxDimensionType != level.dimensionType())
 			{
-				serverPlayer.getCapability(ReturnPointCapability.INSTANCE).ifPresent(cap ->{
-					cap.setReturnPoint(level.dimension(), pos);
-				});
+				ReturnPoint.setReturnPoint(serverPlayer, level.dimension(), pos);
 			}
 			BlockPos posAdjacentToAperture = ((HyperboxBlock)state.getBlock()).getPosAdjacentToAperture(state, faceActivated);
 			BlockPos spawnPoint = SpawnPointHelper.getBestSpawnPosition(

@@ -26,17 +26,7 @@ import net.minecraft.world.level.chunk.storage.RegionFileStorage;
 import net.minecraft.world.level.dimension.DimensionType;
 
 public class MixinCallbacks
-{
-	public static int modifyChunkManagerViewDistance(Supplier<ServerLevel> levelSupplier, int viewDistanceIn)
-	{
-		ServerLevel level = levelSupplier.get();
-		MinecraftServer server = level.getServer();
-		DimensionType hyperboxDimensionType = HyperboxDimension.getDimensionType(server);
-		return hyperboxDimensionType == level.dimensionType()
-			? 2
-			: viewDistanceIn;
-	}
-	
+{	
 	public static void onIOWorkerConstruction(Path path, boolean sync, Consumer<RegionFileStorage> cacheConsumer)
 	{
 		String s = path.toString();

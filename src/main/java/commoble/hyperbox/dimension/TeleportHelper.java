@@ -19,7 +19,7 @@ public class TeleportHelper
 	public static void ejectPlayerFromDeadWorld(ServerPlayer serverPlayer)
 	{
 		// get best world to send the player to
-		ReturnPointCapability.getReturnPoint(serverPlayer)
+		ReturnPoint.getReturnPoint(serverPlayer)
 			.evaluate((targetLevel,pos) ->
 			{
 				if (targetLevel instanceof ServerLevel serverLevel)
