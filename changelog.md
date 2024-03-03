@@ -1,3 +1,7 @@
+## 5.0.0.0
+* Updated to neoforge / MC-1.20.4
+* Hyperbox interiors now generate a special block for the walls instead of bedrock (properties of this block are identical to bedrock)
+
 ## 4.0.1.0
 * Fixed Mood sounds not working inside hyperboxes (requires both server and client to update hyperbox)
 
