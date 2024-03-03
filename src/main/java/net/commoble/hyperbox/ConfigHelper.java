@@ -1,4 +1,4 @@
-package commoble.hyperbox;
+package net.commoble.hyperbox;
 
 import java.util.function.Function;
 

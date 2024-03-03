@@ -1,10 +1,10 @@
-package commoble.hyperbox.client;
+package net.commoble.hyperbox.client;
 
 import com.mojang.blaze3d.platform.InputConstants;
 
-import commoble.hyperbox.Hyperbox;
-import commoble.hyperbox.blocks.C2SSaveHyperboxPacket;
-import commoble.hyperbox.blocks.HyperboxMenu;
+import net.commoble.hyperbox.Hyperbox;
+import net.commoble.hyperbox.blocks.C2SSaveHyperboxPacket;
+import net.commoble.hyperbox.blocks.HyperboxMenu;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.ComponentPath;
 import net.minecraft.client.gui.GuiGraphics;
@@ -65,6 +65,7 @@ public class HyperboxScreen extends AbstractContainerScreen<HyperboxMenu>
 		
 		this.useDefaultNameCheckbox = Checkbox.builder(USE_DEFAULT_NAME_LABEL, this.font)
 			.pos(this.width/2 - 152, 80)
+			.selected(true)
 			.onValueChange((box, selected) -> {
 				HyperboxScreen.this.nameEdit.setEditable(!selected);
 				if (selected)

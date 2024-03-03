@@ -1,9 +1,9 @@
-package commoble.hyperbox.blocks;
+package net.commoble.hyperbox.blocks;
 
 import javax.annotation.Nullable;
 
-import commoble.hyperbox.Hyperbox;
-import commoble.hyperbox.dimension.HyperboxSaveData;
+import net.commoble.hyperbox.Hyperbox;
+import net.commoble.hyperbox.dimension.HyperboxSaveData;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;

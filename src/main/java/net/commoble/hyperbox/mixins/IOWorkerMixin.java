@@ -1,4 +1,4 @@
-package commoble.hyperbox.mixins;
+package net.commoble.hyperbox.mixins;
 
 import java.nio.file.Path;
 import java.util.function.Consumer;
@@ -10,7 +10,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-import commoble.hyperbox.MixinCallbacks;
+import net.commoble.hyperbox.MixinCallbacks;
 import net.minecraft.world.level.chunk.storage.IOWorker;
 import net.minecraft.world.level.chunk.storage.RegionFileStorage;
 

@@ -1,8 +1,8 @@
-package commoble.hyperbox.blocks;
+package net.commoble.hyperbox.blocks;
 
 import java.util.Optional;
 
-import commoble.hyperbox.Hyperbox;
+import net.commoble.hyperbox.Hyperbox;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.MenuProvider;

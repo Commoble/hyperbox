@@ -1,11 +1,11 @@
-package commoble.hyperbox.dimension;
+package net.commoble.hyperbox.dimension;
 
 import java.util.HashSet;
 import java.util.Set;
 
 import javax.annotation.Nullable;
 
-import commoble.hyperbox.Hyperbox;
+import net.commoble.hyperbox.Hyperbox;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
 import net.minecraft.core.registries.Registries;

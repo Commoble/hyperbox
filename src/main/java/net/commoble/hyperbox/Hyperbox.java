@@ -1,4 +1,4 @@
-package commoble.hyperbox;
+package net.commoble.hyperbox;
 
 import java.util.function.Supplier;
 
@@ -8,20 +8,20 @@ import javax.annotation.Nullable;
 import com.google.common.collect.Lists;
 import com.mojang.serialization.Codec;
 
-import commoble.hyperbox.blocks.ApertureBlock;
-import commoble.hyperbox.blocks.ApertureBlockEntity;
-import commoble.hyperbox.blocks.C2SSaveHyperboxPacket;
-import commoble.hyperbox.blocks.HyperboxBlock;
-import commoble.hyperbox.blocks.HyperboxBlockEntity;
-import commoble.hyperbox.blocks.HyperboxBlockItem;
-import commoble.hyperbox.blocks.HyperboxMenu;
-import commoble.hyperbox.client.ClientProxy;
-import commoble.hyperbox.dimension.DelayedTeleportData;
-import commoble.hyperbox.dimension.HyperboxChunkGenerator;
-import commoble.hyperbox.dimension.HyperboxDimension;
-import commoble.hyperbox.dimension.HyperboxSaveData;
-import commoble.hyperbox.dimension.ReturnPoint;
-import commoble.hyperbox.dimension.TeleportHelper;
+import net.commoble.hyperbox.blocks.ApertureBlock;
+import net.commoble.hyperbox.blocks.ApertureBlockEntity;
+import net.commoble.hyperbox.blocks.C2SSaveHyperboxPacket;
+import net.commoble.hyperbox.blocks.HyperboxBlock;
+import net.commoble.hyperbox.blocks.HyperboxBlockEntity;
+import net.commoble.hyperbox.blocks.HyperboxBlockItem;
+import net.commoble.hyperbox.blocks.HyperboxMenu;
+import net.commoble.hyperbox.client.ClientProxy;
+import net.commoble.hyperbox.dimension.DelayedTeleportData;
+import net.commoble.hyperbox.dimension.HyperboxChunkGenerator;
+import net.commoble.hyperbox.dimension.HyperboxDimension;
+import net.commoble.hyperbox.dimension.HyperboxSaveData;
+import net.commoble.hyperbox.dimension.ReturnPoint;
+import net.commoble.hyperbox.dimension.TeleportHelper;
 import net.commoble.infiniverse.api.InfiniverseAPI;
 import net.commoble.infiniverse.api.UnregisterDimensionEvent;
 import net.minecraft.core.BlockPos;
@@ -84,6 +84,7 @@ public class Hyperbox
 	// the placement preview renderer gets the color handler from the player's currently held item instead of the blockstate
 	public final Supplier<HyperboxBlock> hyperboxPreviewBlock;
 	public final Supplier<ApertureBlock> apertureBlock;
+	public final Supplier<Block> hyperboxWall;
 	public final Supplier<BlockItem> hyperboxItem;
 	public final Supplier<BlockEntityType<HyperboxBlockEntity>> hyperboxBlockEntityType;
 	public final Supplier<BlockEntityType<ApertureBlockEntity>> apertureBlockEntityType;
@@ -117,6 +118,8 @@ public class Hyperbox
 		
 		this.apertureBlock = blocks.register(Names.APERTURE, () -> new ApertureBlock(BlockBehaviour.Properties.ofFullCopy(Blocks.BARRIER).lightLevel(state -> 6).isRedstoneConductor(HyperboxBlock::getIsNormalCube)));
 		this.apertureBlockEntityType = tileEntities.register(Names.APERTURE, () -> BlockEntityType.Builder.of(ApertureBlockEntity::create, this.apertureBlock.get()).build(null));
+		
+		this.hyperboxWall = blocks.register(Names.HYPERBOX_WALL, () -> new Block(BlockBehaviour.Properties.ofFullCopy(Blocks.BARRIER)));
 		
 		this.hyperboxMenuType = menuTypes.register(Names.HYPERBOX, () -> new MenuType<HyperboxMenu>(HyperboxMenu::makeClientMenu, FeatureFlags.VANILLA_SET));
 		
@@ -165,7 +168,7 @@ public class Hyperbox
 	private void onRegisterPayloads(RegisterPayloadHandlerEvent event)
 	{
 		event.registrar(MODID)
-			.play(HYPERBOX_ID, C2SSaveHyperboxPacket::read, C2SSaveHyperboxPacket::handle);
+			.play(C2SSaveHyperboxPacket.ID, C2SSaveHyperboxPacket::read, C2SSaveHyperboxPacket::handle);
 	}
 	
 	private void onBuildTabContents(BuildCreativeModeTabContentsEvent event)

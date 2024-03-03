@@ -1,4 +1,4 @@
-package commoble.hyperbox.mixins;
+package net.commoble.hyperbox.mixins;
 
 import javax.annotation.Nullable;
 
@@ -7,7 +7,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-import commoble.hyperbox.MixinCallbacks;
+import net.commoble.hyperbox.MixinCallbacks;
 import net.minecraft.core.Holder;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvent;

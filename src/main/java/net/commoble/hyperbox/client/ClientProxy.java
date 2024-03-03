@@ -1,9 +1,9 @@
-package commoble.hyperbox.client;
+package net.commoble.hyperbox.client;
 
-import commoble.hyperbox.ConfigHelper;
-import commoble.hyperbox.Hyperbox;
-import commoble.hyperbox.RotationHelper;
-import commoble.hyperbox.blocks.HyperboxBlock;
+import net.commoble.hyperbox.ConfigHelper;
+import net.commoble.hyperbox.Hyperbox;
+import net.commoble.hyperbox.RotationHelper;
+import net.commoble.hyperbox.blocks.HyperboxBlock;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.core.BlockPos;

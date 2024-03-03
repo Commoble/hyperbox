@@ -1,12 +1,12 @@
-package commoble.hyperbox.blocks;
+package net.commoble.hyperbox.blocks;
 
 import java.util.Optional;
 
 import javax.annotation.Nullable;
 
-import commoble.hyperbox.Hyperbox;
-import commoble.hyperbox.RotationHelper;
-import commoble.hyperbox.dimension.HyperboxChunkGenerator;
+import net.commoble.hyperbox.Hyperbox;
+import net.commoble.hyperbox.RotationHelper;
+import net.commoble.hyperbox.dimension.HyperboxChunkGenerator;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerLevel;

@@ -1,4 +1,4 @@
-package commoble.hyperbox;
+package net.commoble.hyperbox;
 
 import net.minecraft.core.Direction;
 import net.minecraft.core.Direction.Axis;

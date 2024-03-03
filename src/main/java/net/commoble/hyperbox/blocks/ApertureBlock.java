@@ -1,11 +1,11 @@
-package commoble.hyperbox.blocks;
+package net.commoble.hyperbox.blocks;
 
 import java.util.Optional;
 
-import commoble.hyperbox.Hyperbox;
-import commoble.hyperbox.dimension.DelayedTeleportData;
-import commoble.hyperbox.dimension.HyperboxSaveData;
-import commoble.hyperbox.dimension.SpawnPointHelper;
+import net.commoble.hyperbox.Hyperbox;
+import net.commoble.hyperbox.dimension.DelayedTeleportData;
+import net.commoble.hyperbox.dimension.HyperboxSaveData;
+import net.commoble.hyperbox.dimension.SpawnPointHelper;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.resources.ResourceKey;

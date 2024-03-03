@@ -1,6 +1,6 @@
-package commoble.hyperbox.blocks;
+package net.commoble.hyperbox.blocks;
 
-import commoble.hyperbox.Hyperbox;
+import net.commoble.hyperbox.Hyperbox;
 import net.minecraft.core.Direction;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.FriendlyByteBuf;

@@ -1,11 +1,11 @@
-package commoble.hyperbox.client;
+package net.commoble.hyperbox.client;
 
 import javax.annotation.Nullable;
 
-import commoble.hyperbox.blocks.ApertureBlockEntity;
-import commoble.hyperbox.blocks.HyperboxBlockItem;
-import commoble.hyperbox.blocks.HyperboxBlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
+import net.commoble.hyperbox.blocks.ApertureBlockEntity;
+import net.commoble.hyperbox.blocks.HyperboxBlockEntity;
+import net.commoble.hyperbox.blocks.HyperboxBlockItem;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.world.item.Item;

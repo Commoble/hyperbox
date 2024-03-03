@@ -1,11 +1,11 @@
-package commoble.hyperbox.client;
+package net.commoble.hyperbox.client;
 
 import org.joml.Matrix4f;
 import org.joml.Quaternionf;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 
-import commoble.hyperbox.blocks.HyperboxBlockEntity;
+import net.commoble.hyperbox.blocks.HyperboxBlockEntity;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.player.LocalPlayer;

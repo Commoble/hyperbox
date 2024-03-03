@@ -1,4 +1,4 @@
-package commoble.hyperbox;
+package net.commoble.hyperbox;
 
 import java.nio.file.Path;
 import java.util.List;
@@ -9,10 +9,10 @@ import javax.annotation.Nullable;
 
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-import commoble.hyperbox.dimension.HyperboxChunkGenerator;
-import commoble.hyperbox.dimension.HyperboxDimension;
-import commoble.hyperbox.dimension.HyperboxDimension.IterationResult;
-import commoble.hyperbox.dimension.HyperboxRegionFileStorage;
+import net.commoble.hyperbox.dimension.HyperboxChunkGenerator;
+import net.commoble.hyperbox.dimension.HyperboxDimension;
+import net.commoble.hyperbox.dimension.HyperboxRegionFileStorage;
+import net.commoble.hyperbox.dimension.HyperboxDimension.IterationResult;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
 import net.minecraft.network.protocol.game.ClientboundSoundPacket;

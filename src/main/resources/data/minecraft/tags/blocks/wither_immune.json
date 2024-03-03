@@ -1,5 +1,6 @@
 {
 	"values": [
-		"hyperbox:aperture"
+		"hyperbox:aperture",
+		"hyperbox:hyperbox_wall"
 	]
 }

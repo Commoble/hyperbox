@@ -1,4 +1,4 @@
-package commoble.hyperbox;
+package net.commoble.hyperbox;
 
 import net.neoforged.neoforge.common.ModConfigSpec;
 import net.neoforged.neoforge.common.ModConfigSpec.ConfigValue;

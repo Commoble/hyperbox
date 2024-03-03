@@ -1,4 +1,4 @@
-package commoble.hyperbox.blocks;
+package net.commoble.hyperbox.blocks;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;

@@ -1,0 +1,7 @@
+{
+	"parent": "block/cube_all",
+	"textures":
+	{
+		"all": "hyperbox:block/hyperbox_wall"	
+	}
+}

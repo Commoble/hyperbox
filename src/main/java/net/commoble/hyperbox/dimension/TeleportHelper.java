@@ -1,4 +1,4 @@
-package commoble.hyperbox.dimension;
+package net.commoble.hyperbox.dimension;
 
 import java.util.Optional;
 

@@ -1,4 +1,4 @@
-package commoble.hyperbox.dimension;
+package net.commoble.hyperbox.dimension;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -6,7 +6,7 @@ import java.util.UUID;
 
 import javax.annotation.Nullable;
 
-import commoble.hyperbox.Hyperbox;
+import net.commoble.hyperbox.Hyperbox;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;

@@ -1,8 +1,8 @@
-package commoble.hyperbox.dimension;
+package net.commoble.hyperbox.dimension;
 
-import commoble.hyperbox.Hyperbox;
-import commoble.hyperbox.blocks.ApertureBlockEntity;
-import commoble.hyperbox.blocks.HyperboxBlockEntity;
+import net.commoble.hyperbox.Hyperbox;
+import net.commoble.hyperbox.blocks.ApertureBlockEntity;
+import net.commoble.hyperbox.blocks.HyperboxBlockEntity;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.registries.Registries;

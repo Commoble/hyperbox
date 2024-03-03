@@ -1,4 +1,4 @@
-package commoble.hyperbox.client;
+package net.commoble.hyperbox.client;
 
 import net.minecraft.client.renderer.DimensionSpecialEffects;
 import net.minecraft.world.phys.Vec3;

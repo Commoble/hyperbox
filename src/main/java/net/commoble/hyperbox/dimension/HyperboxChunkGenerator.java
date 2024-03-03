@@ -1,4 +1,4 @@
-package commoble.hyperbox.dimension;
+package net.commoble.hyperbox.dimension;
 
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -10,8 +10,8 @@ import javax.annotation.Nullable;
 import com.mojang.datafixers.util.Pair;
 import com.mojang.serialization.Codec;
 
-import commoble.hyperbox.Hyperbox;
-import commoble.hyperbox.blocks.ApertureBlock;
+import net.commoble.hyperbox.Hyperbox;
+import net.commoble.hyperbox.blocks.ApertureBlock;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.Holder;
@@ -45,7 +45,7 @@ public class HyperboxChunkGenerator extends ChunkGenerator
 	public static final BlockPos CORNER = CHUNKPOS.getWorldPosition();
 	public static final BlockPos CENTER = CORNER.offset(7, 7, 7);
 	public static final BlockPos MIN_SPAWN_CORNER = HyperboxChunkGenerator.CORNER.offset(1,1,1);
-	// don't want to spawn with head in the bedrock ceiling
+	// don't want to spawn with head in the ceiling
 	public static final BlockPos MAX_SPAWN_CORNER = HyperboxChunkGenerator.CORNER.offset(13,12,13);
 
 	private final Holder<Biome> biome; public Holder<Biome> biome() { return biome; }
@@ -91,13 +91,13 @@ public class HyperboxChunkGenerator extends ChunkGenerator
 	@Override
 	public void buildSurface(WorldGenRegion worldGenRegion, StructureManager structureFeatureManager, RandomState random, ChunkAccess chunk)
 	{
-		// set bedrock at the floor and ceiling and walls of the chunk
+		// set wall blocks at the floor and ceiling and walls of the chunk
 		// ceiling y = height-1, so if height==16, ceiling==15
-		// we'll generate bedrock on xz from 0 to 14 rather than from 0 to 15 so sizes of walls are odd numbers
+		// we'll generate wall on xz from 0 to 14 rather than from 0 to 15 so sizes of walls are odd numbers
 		ChunkPos chunkPos = chunk.getPos();
 		if (chunkPos.equals(CHUNKPOS))
 		{
-			BlockState wallState = Blocks.BEDROCK.defaultBlockState();
+			BlockState wallState = Hyperbox.INSTANCE.hyperboxWall.get().defaultBlockState();
 			BlockPos.MutableBlockPos mutaPos = new BlockPos.MutableBlockPos();
 			mutaPos.set(CORNER);
 			int maxHorizontal = 14;

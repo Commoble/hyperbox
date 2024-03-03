@@ -1,16 +1,16 @@
-package commoble.hyperbox.blocks;
+package net.commoble.hyperbox.blocks;
 
 import java.util.Optional;
 
 import javax.annotation.Nullable;
 
-import commoble.hyperbox.Hyperbox;
-import commoble.hyperbox.dimension.DelayedTeleportData;
-import commoble.hyperbox.dimension.HyperboxChunkGenerator;
-import commoble.hyperbox.dimension.HyperboxDimension;
-import commoble.hyperbox.dimension.HyperboxSaveData;
-import commoble.hyperbox.dimension.ReturnPoint;
-import commoble.hyperbox.dimension.SpawnPointHelper;
+import net.commoble.hyperbox.Hyperbox;
+import net.commoble.hyperbox.dimension.DelayedTeleportData;
+import net.commoble.hyperbox.dimension.HyperboxChunkGenerator;
+import net.commoble.hyperbox.dimension.HyperboxDimension;
+import net.commoble.hyperbox.dimension.HyperboxSaveData;
+import net.commoble.hyperbox.dimension.ReturnPoint;
+import net.commoble.hyperbox.dimension.SpawnPointHelper;
 import net.commoble.infiniverse.api.InfiniverseAPI;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;

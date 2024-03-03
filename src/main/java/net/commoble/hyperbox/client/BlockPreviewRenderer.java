@@ -1,4 +1,4 @@
-package commoble.hyperbox.client;
+package net.commoble.hyperbox.client;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
