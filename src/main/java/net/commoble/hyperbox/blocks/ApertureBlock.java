@@ -77,8 +77,8 @@ public class ApertureBlock extends Block implements EntityBlock
 				Direction hyperboxFacing = hyperboxBlock.getCurrentFacing(parentState, apertureFacing.getOpposite()); 
 				targetPos = parentPos.relative(hyperboxFacing);
 				if (destinationLevel.getBlockState(targetPos).getDestroySpeed(destinationLevel, targetPos) < 0)
-				{	// if this face of the exit block faces bedrock, make the initial spawn search target be the exit block instead of the adjacent position
-					// (we do this so the spawn finder doesn't skip through the bedrock)
+				{	// if this face of the exit block faces the barrier, make the initial spawn search target be the exit block instead of the adjacent position
+					// (we do this so the spawn finder doesn't skip through the barrier)
 					targetPos = parentPos;
 				}
 				targetPos = SpawnPointHelper.getBestSpawnPosition(destinationLevel, targetPos, targetPos.offset(-3,-3,-3), targetPos.offset(3,3,3));

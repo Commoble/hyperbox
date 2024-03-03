@@ -42,6 +42,11 @@ public record C2SSaveHyperboxPacket(String dimension, String name, boolean enter
 
 	public void handle(PlayPayloadContext context)
 	{
+		context.workHandler().execute(() -> this.handleMainThread(context));
+	}
+	
+	private void handleMainThread(PlayPayloadContext context)
+	{
 		Player p = context.player().orElse(null);
 		if (!(p instanceof ServerPlayer player) || !(player.containerMenu instanceof HyperboxMenu menu))
 		{

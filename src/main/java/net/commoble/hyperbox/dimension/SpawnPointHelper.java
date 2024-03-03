@@ -77,7 +77,7 @@ public class SpawnPointHelper
 	public static boolean isPosAllowed(BlockGetter world, BlockPos pos, BlockPos min, BlockPos max)
 	{
 		return isPosWithinBounds(pos, min, max)
-			&& world.getBlockState(pos).getDestroySpeed(world, pos) >= 0; // don't search through bedrock, etc
+			&& world.getBlockState(pos).getDestroySpeed(world, pos) >= 0; // don't search through the indestructible walls
 	}
 	
 	public static boolean isPosWithinBounds(BlockPos pos, BlockPos min, BlockPos max)

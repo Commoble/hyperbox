@@ -144,7 +144,7 @@ public class HyperboxBlock extends Block implements EntityBlock
 	public BlockPos getPosAdjacentToAperture(BlockState state, Direction worldSpaceFace)
 	{
 		Direction originalFace = this.getOriginalFace(state, worldSpaceFace);
-		// the hyperbox dimension chunk is a 15x15x15 space, with bedrock walls, a corner at 0,0,0, and the center at 7,7,7
+		// the hyperbox dimension chunk is a 15x15x15 space, with indestructible walls, a corner at 0,0,0, and the center at 7,7,7
 		// we want to get the position of the block adjacent to the relevant aperture
 		// if side is e.g. west (the west side of the parent block)
 		// then the target position is the block one space to the east of the western aperture
