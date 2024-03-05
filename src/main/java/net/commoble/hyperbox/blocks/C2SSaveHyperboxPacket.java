@@ -21,7 +21,6 @@ public record C2SSaveHyperboxPacket(String dimension, String name, boolean enter
 	@Override
 	public void write(FriendlyByteBuf buffer)
 	{
-		buffer.writeUtf(this.dimension);
 		buffer.writeUtf(this.name);
 		buffer.writeBoolean(this.enterImmediate);
 	}
@@ -29,7 +28,6 @@ public record C2SSaveHyperboxPacket(String dimension, String name, boolean enter
 	public static C2SSaveHyperboxPacket read(FriendlyByteBuf buffer)
 	{
 		return new C2SSaveHyperboxPacket(
-			buffer.readUtf(),
 			buffer.readUtf(),
 			buffer.readBoolean());
 	}
@@ -53,22 +51,8 @@ public record C2SSaveHyperboxPacket(String dimension, String name, boolean enter
 			// don't do anything else if menu isn't open (averts possible spam from bad actors)
 			return;
 		}
+		ResourceLocation dimensionId = HyperboxDimension.generateId(player, this.name);
 		
-		if (this.dimension == null || this.dimension.isBlank())
-		{
-			player.displayClientMessage(Component.translatable("menu.hyperbox.message.no_id", this.dimension), false);
-			player.closeContainer();
-			return;
-		}
-			
-		if (!ResourceLocation.isValidPath(this.dimension))
-		{
-			player.displayClientMessage(Component.translatable("menu.hyperbox.message.invalid_id", this.dimension), false);
-			player.closeContainer();
-			return;
-		}
-		
-		ResourceLocation dimensionId = new ResourceLocation(Hyperbox.MODID, this.dimension);
 		ResourceKey<Level> levelKey = ResourceKey.create(Registries.DIMENSION, dimensionId);
 		ServerLevel level = player.serverLevel();
 		if (level.getServer().getLevel(levelKey) != null)
