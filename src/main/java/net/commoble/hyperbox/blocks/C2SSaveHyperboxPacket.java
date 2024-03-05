@@ -1,6 +1,7 @@
 package net.commoble.hyperbox.blocks;
 
 import net.commoble.hyperbox.Hyperbox;
+import net.commoble.hyperbox.dimension.HyperboxDimension;
 import net.minecraft.core.Direction;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.FriendlyByteBuf;
@@ -14,7 +15,7 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
 import net.neoforged.neoforge.network.handling.PlayPayloadContext;
 
-public record C2SSaveHyperboxPacket(String dimension, String name, boolean enterImmediate) implements CustomPacketPayload
+public record C2SSaveHyperboxPacket(String name, boolean enterImmediate) implements CustomPacketPayload
 {
 	public static final ResourceLocation ID = new ResourceLocation(Hyperbox.MODID, "save_hyperbox");
 	

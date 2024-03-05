@@ -2,9 +2,9 @@ package net.commoble.hyperbox.client;
 
 import com.mojang.blaze3d.platform.InputConstants;
 
-import net.commoble.hyperbox.Hyperbox;
 import net.commoble.hyperbox.blocks.C2SSaveHyperboxPacket;
 import net.commoble.hyperbox.blocks.HyperboxMenu;
+import net.commoble.hyperbox.dimension.HyperboxDimension;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.ComponentPath;
 import net.minecraft.client.gui.GuiGraphics;
@@ -153,7 +153,7 @@ public class HyperboxScreen extends AbstractContainerScreen<HyperboxMenu>
 		this.saveAndEnterButton.active = false;
 		this.saveAndExitButton.active = false;
 		String name = this.nameEdit.getValue();
-		Hyperbox.CHANNEL.sendToServer(new C2SSaveHyperboxPacket(name, enterImmediate));
+		PacketDistributor.SERVER.noArg().send(new C2SSaveHyperboxPacket(name, enterImmediate));
 	}
 	
 	@SuppressWarnings("resource")
