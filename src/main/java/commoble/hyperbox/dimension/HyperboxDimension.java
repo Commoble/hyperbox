@@ -1,7 +1,9 @@
 package commoble.hyperbox.dimension;
 
 import java.util.HashSet;
+import java.util.Locale;
 import java.util.Set;
+import java.util.UUID;
 
 import javax.annotation.Nullable;
 
@@ -10,8 +12,10 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.dimension.DimensionType;
 import net.minecraft.world.level.dimension.LevelStem;
@@ -89,5 +93,32 @@ public class HyperboxDimension
 	{
 		public static final IterationResult FAILURE = new IterationResult(-1, null);
 		public static final IterationResult NONE = new IterationResult(0, null);
+	}
+	
+	/**
+	 * Generates a dimension id based on the display name a player assigns to a hyperbox.
+	 * The dimension will be in a subdirectory under the uuid of the player.
+	 * If Alice names a hyperbox "Cheeses! 43 Flavors.", the dimension id will be `uuid/cheeses_43_flavors`.
+	 * If the display name contains no valid alphanumeric characters, a random id will be created instead
+	 * (otherwise non-latin keyboards can't make hyperboxes at all).
+	 * @param player
+	 * @param displayName
+	 * @return
+	 */
+	public static ResourceLocation generateId(Player player, String displayName)
+	{
+		String sanitizedName = displayName
+			.replace(" ", "_")
+			.replaceAll("\\W", ""); // remove non-"word characters", word characters being alphanumbers and underscores
+		if (sanitizedName.isBlank())
+		{
+			// generate random time-based UUID
+			long time = player.level().getGameTime();
+			long randLong = player.level().getRandom().nextLong();
+			UUID uuid = new UUID(time, randLong);
+			sanitizedName = uuid.toString();
+		}
+		String path = String.format("%s/%s", player.getStringUUID(), sanitizedName).toLowerCase(Locale.ROOT);
+		return new ResourceLocation(Hyperbox.MODID, path);
 	}
 }

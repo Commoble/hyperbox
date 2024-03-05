@@ -76,7 +76,7 @@ public class Hyperbox
 	public static final String MODID = "hyperbox";
 	public static Hyperbox INSTANCE;
 	
-	public static final String PROTOCOL_VERSION = "1";
+	public static final String PROTOCOL_VERSION = "4.0.1";
 	public static final SimpleChannel CHANNEL = NetworkRegistry.newSimpleChannel(
 		new ResourceLocation(MODID,MODID),
 		() -> PROTOCOL_VERSION,

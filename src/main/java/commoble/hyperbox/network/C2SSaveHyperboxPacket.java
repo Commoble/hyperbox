@@ -2,8 +2,8 @@ package commoble.hyperbox.network;
 
 import java.util.function.Consumer;
 
-import commoble.hyperbox.Hyperbox;
 import commoble.hyperbox.blocks.HyperboxMenu;
+import commoble.hyperbox.dimension.HyperboxDimension;
 import net.minecraft.core.Direction;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
@@ -15,17 +15,15 @@ import net.minecraft.world.level.Level;
 import net.minecraftforge.network.NetworkEvent;
 import net.minecraftforge.network.NetworkEvent.Context;
 
-public record C2SSaveHyperboxPacket(String dimension, String name, boolean enterImmediate) implements Consumer<NetworkEvent.Context>
+public record C2SSaveHyperboxPacket(String name, boolean enterImmediate) implements Consumer<NetworkEvent.Context>
 {
 	public static final PacketSerializer<C2SSaveHyperboxPacket> SERIALIZER = new PacketSerializer<>(
 		C2SSaveHyperboxPacket.class,
 		(packet,buffer) -> {
-			buffer.writeUtf(packet.dimension);
 			buffer.writeUtf(packet.name);
 			buffer.writeBoolean(packet.enterImmediate);
 		},
 		(buffer) -> new C2SSaveHyperboxPacket(
-			buffer.readUtf(),
 			buffer.readUtf(),
 			buffer.readBoolean()));
 	
@@ -38,22 +36,8 @@ public record C2SSaveHyperboxPacket(String dimension, String name, boolean enter
 			// don't do anything else if menu isn't open (averts possible spam from bad actors)
 			return;
 		}
+		ResourceLocation dimensionId = HyperboxDimension.generateId(player, this.name);
 		
-		if (this.dimension == null || this.dimension.isBlank())
-		{
-			player.displayClientMessage(Component.translatable("menu.hyperbox.message.no_id", this.dimension), false);
-			player.closeContainer();
-			return;
-		}
-			
-		if (!ResourceLocation.isValidPath(this.dimension))
-		{
-			player.displayClientMessage(Component.translatable("menu.hyperbox.message.invalid_id", this.dimension), false);
-			player.closeContainer();
-			return;
-		}
-		
-		ResourceLocation dimensionId = new ResourceLocation(Hyperbox.MODID, this.dimension);
 		ResourceKey<Level> levelKey = ResourceKey.create(Registries.DIMENSION, dimensionId);
 		ServerLevel level = player.serverLevel();
 		if (level.getServer().getLevel(levelKey) != null)
