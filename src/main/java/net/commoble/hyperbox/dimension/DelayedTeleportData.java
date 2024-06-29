@@ -7,6 +7,7 @@ import java.util.UUID;
 import javax.annotation.Nullable;
 
 import net.commoble.hyperbox.Hyperbox;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
@@ -36,7 +37,7 @@ public class DelayedTeleportData extends SavedData
 		return level.getDataStorage().computeIfAbsent(FACTORY, DATA_KEY);
 	}
 	
-	public static DelayedTeleportData load(CompoundTag nbt)
+	public static DelayedTeleportData load(CompoundTag nbt, HolderLookup.Provider registries)
 	{
 		// NOOP, data is transient
 		return DelayedTeleportData.create();
@@ -84,7 +85,7 @@ public class DelayedTeleportData extends SavedData
 	}
 
 	@Override
-	public CompoundTag save(CompoundTag compound)
+	public CompoundTag save(CompoundTag compound, HolderLookup.Provider registries)
 	{
 		return compound;
 	}

@@ -119,6 +119,6 @@ public class HyperboxDimension
 			sanitizedName = uuid.toString();
 		}
 		String path = String.format("%s/%s", player.getStringUUID(), sanitizedName).toLowerCase(Locale.ROOT);
-		return new ResourceLocation(Hyperbox.MODID, path);
+		return Hyperbox.id(path);
 	}
 }

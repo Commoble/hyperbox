@@ -3,7 +3,6 @@ package net.commoble.hyperbox;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.function.Consumer;
-import java.util.function.Supplier;
 
 import javax.annotation.Nullable;
 
@@ -11,8 +10,8 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import net.commoble.hyperbox.dimension.HyperboxChunkGenerator;
 import net.commoble.hyperbox.dimension.HyperboxDimension;
-import net.commoble.hyperbox.dimension.HyperboxRegionFileStorage;
 import net.commoble.hyperbox.dimension.HyperboxDimension.IterationResult;
+import net.commoble.hyperbox.dimension.HyperboxRegionFileStorage;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
 import net.minecraft.network.protocol.game.ClientboundSoundPacket;
@@ -23,16 +22,17 @@ import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.chunk.storage.RegionFileStorage;
+import net.minecraft.world.level.chunk.storage.RegionStorageInfo;
 import net.minecraft.world.level.dimension.DimensionType;
 
 public class MixinCallbacks
 {	
-	public static void onIOWorkerConstruction(Path path, boolean sync, Consumer<RegionFileStorage> cacheConsumer)
+	public static void onIOWorkerConstruction(RegionStorageInfo info, Path path, boolean sync, Consumer<RegionFileStorage> cacheConsumer)
 	{
 		String s = path.toString();
 		if (s.contains("dimensions/hyperbox") || s.contains("dimensions\\hyperbox"))
 		{
-			cacheConsumer.accept(new HyperboxRegionFileStorage(path,sync));
+			cacheConsumer.accept(new HyperboxRegionFileStorage(info, path,sync));
 		}
 	}
 	

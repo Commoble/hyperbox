@@ -14,6 +14,9 @@ import net.commoble.hyperbox.dimension.SpawnPointHelper;
 import net.commoble.infiniverse.api.InfiniverseAPI;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.core.component.DataComponentMap;
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.Connection;
@@ -26,6 +29,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.Mth;
 import net.minecraft.world.Nameable;
+import net.minecraft.world.item.component.DyedItemColor;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntity;
@@ -46,7 +50,7 @@ public class HyperboxBlockEntity extends BlockEntity implements Nameable
 	// key to the hyperbox world stored in this te
 	private Optional<ResourceKey<Level>> levelKey = Optional.empty();
 	private Optional<Component> name = Optional.empty();
-	private int color = HyperboxBlockItem.DEFAULT_COLOR;
+	private int color = Hyperbox.DEFAULT_COLOR;
 	// power output by side index of "original"/unrotated output side (linked to the aperture on the same side of the subdimension)
 	private int[] weakPowerDUNSWE = {0,0,0,0,0,0};
 	private int[] strongPowerDUNSWE = {0,0,0,0,0,0};
@@ -262,30 +266,30 @@ public class HyperboxBlockEntity extends BlockEntity implements Nameable
 	}
 
 	@Override
-	public void saveAdditional(CompoundTag compound)
+	public void saveAdditional(CompoundTag compound, HolderLookup.Provider registries)
 	{
-		super.saveAdditional(compound);
+		super.saveAdditional(compound, registries);
 		this.levelKey.ifPresent(key -> compound.putString(WORLD_KEY, key.location().toString()));
-		this.writeClientSensitiveData(compound);
+		this.writeClientSensitiveData(compound, registries);
 	}
 
 	@Override
-	public void load(CompoundTag nbt)
+	public void loadAdditional(CompoundTag nbt, HolderLookup.Provider registries)
 	{
-		super.load(nbt);
+		super.loadAdditional(nbt, registries);
 		this.levelKey = nbt.contains(WORLD_KEY)
-			? Optional.of(ResourceKey.create(Registries.DIMENSION, new ResourceLocation(nbt.getString(WORLD_KEY))))
+			? Optional.of(ResourceKey.create(Registries.DIMENSION, ResourceLocation.parse(nbt.getString(WORLD_KEY))))
 			: Optional.empty();
-		this.readClientSensitiveData(nbt);
+		this.readClientSensitiveData(nbt, registries);
 	}
 	
-	protected CompoundTag writeClientSensitiveData(CompoundTag nbt)
+	protected CompoundTag writeClientSensitiveData(CompoundTag nbt, HolderLookup.Provider registries)
 	{
 		this.name.ifPresent(theName ->
 		{
-			nbt.putString(NAME, Component.Serializer.toJson(theName));
+			nbt.putString(NAME, Component.Serializer.toJson(theName, registries));
 		});
-		if (this.color != HyperboxBlockItem.DEFAULT_COLOR)
+		if (this.color != Hyperbox.DEFAULT_COLOR)
 		{
 			nbt.putInt(COLOR, this.color);
 		}
@@ -294,14 +298,14 @@ public class HyperboxBlockEntity extends BlockEntity implements Nameable
 		return nbt;
 	}
 	
-	protected void readClientSensitiveData(CompoundTag nbt)
+	protected void readClientSensitiveData(CompoundTag nbt, HolderLookup.Provider registries)
 	{
 		this.name = nbt.contains(NAME)
-			? Optional.ofNullable(Component.Serializer.fromJson(nbt.getString(NAME)))
+			? Optional.ofNullable(Component.Serializer.fromJson(nbt.getString(NAME), registries))
 			: Optional.empty();
 		this.color = nbt.contains(COLOR)
 			? nbt.getInt(COLOR)
-			: HyperboxBlockItem.DEFAULT_COLOR;
+			: Hyperbox.DEFAULT_COLOR;
 		this.weakPowerDUNSWE = nbt.getIntArray(WEAK_POWER);
 		this.strongPowerDUNSWE = nbt.getIntArray(STRONG_POWER);
 	}
@@ -309,10 +313,10 @@ public class HyperboxBlockEntity extends BlockEntity implements Nameable
 	// called on server when the TE is initially loaded on client (e.g. when client loads chunk)
 	// this is handled by this.handleUpdateTag, which just calls read()
 	@Override
-	public CompoundTag getUpdateTag()
+	public CompoundTag getUpdateTag(HolderLookup.Provider registries)
 	{
-		CompoundTag nbt = super.getUpdateTag();
-		this.writeClientSensitiveData(nbt);
+		CompoundTag nbt = super.getUpdateTag(registries);
+		this.writeClientSensitiveData(nbt, registries);
 		return nbt;
 	}
 
@@ -326,14 +330,32 @@ public class HyperboxBlockEntity extends BlockEntity implements Nameable
 
 	// called on client to read the packet sent from getUpdatePacket
 	@Override
-	public void onDataPacket(Connection net, ClientboundBlockEntityDataPacket pkt)
+	public void onDataPacket(Connection net, ClientboundBlockEntityDataPacket pkt, HolderLookup.Provider registries)
 	{
-		this.readClientSensitiveData(pkt.getTag());
+		this.readClientSensitiveData(pkt.getTag(), registries);
 	}
 	
 	@Override
-	public void handleUpdateTag(CompoundTag nbt)
+	public void handleUpdateTag(CompoundTag nbt, HolderLookup.Provider registries)
 	{
-		this.readClientSensitiveData(nbt);
+		this.readClientSensitiveData(nbt, registries);
 	}
+	
+	@Override
+    protected void applyImplicitComponents(BlockEntity.DataComponentInput input) {
+		super.applyImplicitComponents(input);
+		this.name = Optional.ofNullable(input.get(DataComponents.CUSTOM_NAME));
+		this.color = input.getOrDefault(DataComponents.DYED_COLOR, new DyedItemColor(Hyperbox.DEFAULT_COLOR, true)).rgb();
+		this.levelKey = Optional.ofNullable(input.get(Hyperbox.INSTANCE.worldKeyDataComponent.get()));
+	}
+	
+	@Override
+    protected void collectImplicitComponents(DataComponentMap.Builder builder) {
+    	this.name.ifPresent(n -> builder.set(DataComponents.CUSTOM_NAME, n));
+    	if (this.color != Hyperbox.DEFAULT_COLOR)
+    	{
+    		builder.set(DataComponents.DYED_COLOR, new DyedItemColor(this.color, true));
+    	}
+    	this.levelKey.ifPresent(key -> builder.set(Hyperbox.INSTANCE.worldKeyDataComponent.get(), key));
+    }
 }

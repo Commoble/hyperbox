@@ -2,17 +2,17 @@ package net.commoble.hyperbox.client;
 
 import javax.annotation.Nullable;
 
-import net.minecraft.world.level.block.state.BlockState;
+import net.commoble.hyperbox.Hyperbox;
 import net.commoble.hyperbox.blocks.ApertureBlockEntity;
 import net.commoble.hyperbox.blocks.HyperboxBlockEntity;
-import net.commoble.hyperbox.blocks.HyperboxBlockItem;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
-import net.minecraft.world.item.Item;
-import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.core.BlockPos;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.component.DyedItemColor;
 import net.minecraft.world.level.BlockAndTintGetter;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.state.BlockState;
 
 public class ColorHandlers
 {
@@ -28,11 +28,11 @@ public class ColorHandlers
 				BlockEntity te = level.getBlockEntity(pos);
 				return te instanceof HyperboxBlockEntity hyperbox
 					? hyperbox.getColor()
-					: HyperboxBlockItem.DEFAULT_COLOR;
+					: Hyperbox.DEFAULT_COLOR;
 			}
 			else
 			{
-				return HyperboxBlockItem.DEFAULT_COLOR;
+				return Hyperbox.DEFAULT_COLOR;
 			}
 		}
 		else
@@ -50,9 +50,9 @@ public class ColorHandlers
 			LocalPlayer player = Minecraft.getInstance().player;
 			if (player != null)
 			{
-				return HyperboxBlockItem.getColorIfHyperbox(player.getMainHandItem());
+				return DyedItemColor.getOrDefault(player.getMainHandItem(), Hyperbox.DEFAULT_COLOR);
 			}
-			return HyperboxBlockItem.DEFAULT_COLOR;
+			return Hyperbox.DEFAULT_COLOR;
 		}
 		else
 		{
@@ -69,11 +69,11 @@ public class ColorHandlers
 				BlockEntity te = level.getBlockEntity(pos);
 				return te instanceof ApertureBlockEntity aperture
 					? aperture.getColor()
-					: HyperboxBlockItem.DEFAULT_COLOR;
+					: Hyperbox.DEFAULT_COLOR;
 			}
 			else
 			{
-				return HyperboxBlockItem.DEFAULT_COLOR;
+				return Hyperbox.DEFAULT_COLOR;
 			}
 		}
 		else
@@ -84,10 +84,9 @@ public class ColorHandlers
 	
 	public static int getHyperboxItemColor(ItemStack stack, int tintIndex)
 	{
-		Item item = stack.getItem();
-		if (tintIndex == BACKGROUND_TINT && item instanceof HyperboxBlockItem hyperboxBlockItem)
+		if (tintIndex == BACKGROUND_TINT)
 		{
-			return hyperboxBlockItem.getColor(stack);
+			return DyedItemColor.getOrDefault(stack, Hyperbox.DEFAULT_COLOR);
 		}
 		else
 		{

@@ -12,7 +12,7 @@ base {
 	archivesName = "${modid}-${mc_version}"
 }
 
-java.toolchain.languageVersion = JavaLanguageVersion.of(17)
+java.toolchain.languageVersion = JavaLanguageVersion.of(21)
 jarJar.enable()
 
 sourceSets {

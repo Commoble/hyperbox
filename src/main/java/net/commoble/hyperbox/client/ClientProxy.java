@@ -31,7 +31,7 @@ public class ClientProxy
 	// called from mod constructor
 	public static void doClientModInit(IEventBus modBus, IEventBus forgeBus)
 	{
-		clientConfig = ConfigHelper.register(ModConfig.Type.CLIENT, ClientConfig::new);
+		clientConfig = ConfigHelper.register(Hyperbox.MODID, ModConfig.Type.CLIENT, ClientConfig::new);
 
 		modBus.addListener(ClientProxy::onRegisterScreens);
 		modBus.addListener(ClientProxy::onRegisterDimensionSpecialEffects);
@@ -83,7 +83,7 @@ public class ClientProxy
 				if (item instanceof BlockItem blockItem)
 				{
 					Block block = blockItem.getBlock();
-					if (block instanceof HyperboxBlock hyperboxBlock)
+					if (block instanceof HyperboxBlock)
 					{
 						BlockHitResult rayTrace = event.getTarget();
 						Direction directionAwayFromTargetedBlock = rayTrace.getDirection();

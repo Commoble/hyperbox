@@ -153,7 +153,7 @@ public class HyperboxScreen extends AbstractContainerScreen<HyperboxMenu>
 		this.saveAndEnterButton.active = false;
 		this.saveAndExitButton.active = false;
 		String name = this.nameEdit.getValue();
-		PacketDistributor.SERVER.noArg().send(new C2SSaveHyperboxPacket(name, enterImmediate));
+		PacketDistributor.sendToServer(new C2SSaveHyperboxPacket(name, enterImmediate));
 	}
 	
 	@SuppressWarnings("resource")

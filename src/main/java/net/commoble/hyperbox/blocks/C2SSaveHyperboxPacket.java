@@ -1,11 +1,13 @@
 package net.commoble.hyperbox.blocks;
 
+import io.netty.buffer.ByteBuf;
 import net.commoble.hyperbox.Hyperbox;
 import net.commoble.hyperbox.dimension.HyperboxDimension;
 import net.minecraft.core.Direction;
 import net.minecraft.core.registries.Registries;
-import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.codec.ByteBufCodecs;
+import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
@@ -13,40 +15,26 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
-import net.neoforged.neoforge.network.handling.PlayPayloadContext;
+import net.neoforged.neoforge.network.handling.IPayloadContext;
 
 public record C2SSaveHyperboxPacket(String name, boolean enterImmediate) implements CustomPacketPayload
 {
-	public static final ResourceLocation ID = new ResourceLocation(Hyperbox.MODID, "save_hyperbox");
+	public static final CustomPacketPayload.Type<C2SSaveHyperboxPacket> TYPE = new CustomPacketPayload.Type<>(Hyperbox.id("save_hyperbox"));
 	
-	@Override
-	public void write(FriendlyByteBuf buffer)
-	{
-		buffer.writeUtf(this.name);
-		buffer.writeBoolean(this.enterImmediate);
-	}
+	public static final StreamCodec<ByteBuf, C2SSaveHyperboxPacket> STREAM_CODEC = StreamCodec.composite(
+		ByteBufCodecs.STRING_UTF8, C2SSaveHyperboxPacket::name,
+		ByteBufCodecs.BOOL, C2SSaveHyperboxPacket::enterImmediate,
+		C2SSaveHyperboxPacket::new);
 	
-	public static C2SSaveHyperboxPacket read(FriendlyByteBuf buffer)
-	{
-		return new C2SSaveHyperboxPacket(
-			buffer.readUtf(),
-			buffer.readBoolean());
-	}
 
-	@Override
-	public ResourceLocation id()
+	public void handle(IPayloadContext context)
 	{
-		return ID;
-	}
-
-	public void handle(PlayPayloadContext context)
-	{
-		context.workHandler().execute(() -> this.handleMainThread(context));
+		context.enqueueWork(() -> this.handleMainThread(context));
 	}
 	
-	private void handleMainThread(PlayPayloadContext context)
+	private void handleMainThread(IPayloadContext context)
 	{
-		Player p = context.player().orElse(null);
+		Player p = context.player();
 		if (!(p instanceof ServerPlayer player) || !(player.containerMenu instanceof HyperboxMenu menu))
 		{
 			// don't do anything else if menu isn't open (averts possible spam from bad actors)
@@ -83,5 +71,11 @@ public record C2SSaveHyperboxPacket(String name, boolean enterImmediate) impleme
 				player.closeContainer();
 			}
 		}, player::closeContainer); // menu should always have a hyperbox on the server but we'll handle the case anyway
+	}
+
+	@Override
+	public Type<? extends CustomPacketPayload> type()
+	{
+		return TYPE;
 	}
 }

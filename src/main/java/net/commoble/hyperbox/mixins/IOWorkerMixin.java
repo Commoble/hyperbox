@@ -1,7 +1,6 @@
 package net.commoble.hyperbox.mixins;
 
 import java.nio.file.Path;
-import java.util.function.Consumer;
 
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Mutable;
@@ -13,23 +12,18 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import net.commoble.hyperbox.MixinCallbacks;
 import net.minecraft.world.level.chunk.storage.IOWorker;
 import net.minecraft.world.level.chunk.storage.RegionFileStorage;
+import net.minecraft.world.level.chunk.storage.RegionStorageInfo;
 
 @Mixin(IOWorker.class)
-public abstract class IOWorkerMixin implements Consumer<RegionFileStorage>
+public abstract class IOWorkerMixin
 {
 	@Mutable
 	@Accessor
 	public abstract void setStorage(RegionFileStorage cache);
 	
-	@Override
-	public void accept(RegionFileStorage cache)
-	{
-		this.setStorage(cache);
-	}
-	
 	@Inject(method="<init>", at=@At("RETURN"))
-	private void onConstruction(Path path, boolean sync, String threadName, CallbackInfo info)
+	private void onConstruction(RegionStorageInfo rsi, Path path, boolean sync, CallbackInfo info)
 	{
-		MixinCallbacks.onIOWorkerConstruction(path, sync, this);
+		MixinCallbacks.onIOWorkerConstruction(rsi, path, sync, this::setStorage);
 	}
 }

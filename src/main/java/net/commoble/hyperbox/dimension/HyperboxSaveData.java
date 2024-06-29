@@ -5,6 +5,7 @@ import net.commoble.hyperbox.blocks.ApertureBlockEntity;
 import net.commoble.hyperbox.blocks.HyperboxBlockEntity;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtUtils;
@@ -42,10 +43,10 @@ public class HyperboxSaveData extends SavedData
 		return world.getDataStorage().computeIfAbsent(FACTORY, DATA_KEY);
 	}
 	
-	public static HyperboxSaveData load(CompoundTag nbt)
+	public static HyperboxSaveData load(CompoundTag nbt, HolderLookup.Provider registries)
 	{
-		ResourceKey<Level> parentWorld = ResourceKey.create(Registries.DIMENSION, new ResourceLocation(nbt.getString(PARENT_WORLD_KEY)));
-		BlockPos parentPos = NbtUtils.readBlockPos(nbt.getCompound(PARENT_POS_KEY));
+		ResourceKey<Level> parentWorld = ResourceKey.create(Registries.DIMENSION, ResourceLocation.parse(nbt.getString(PARENT_WORLD_KEY)));
+		BlockPos parentPos = NbtUtils.readBlockPos(nbt, PARENT_POS_KEY).orElse(DEFAULT_PARENT_POS);
 		return new HyperboxSaveData(parentWorld, parentPos);
 	}
 	
@@ -93,7 +94,7 @@ public class HyperboxSaveData extends SavedData
 	}
 
 	@Override
-	public CompoundTag save(CompoundTag compound)
+	public CompoundTag save(CompoundTag compound, HolderLookup.Provider registries)
 	{
 		compound.putString(PARENT_WORLD_KEY, this.parentWorld.location().toString());
 		compound.put(PARENT_POS_KEY, NbtUtils.writeBlockPos(this.parentPos));

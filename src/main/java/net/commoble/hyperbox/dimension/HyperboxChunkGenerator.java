@@ -2,13 +2,12 @@ package net.commoble.hyperbox.dimension;
 
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Executor;
 import java.util.function.Consumer;
 
 import javax.annotation.Nullable;
 
 import com.mojang.datafixers.util.Pair;
-import com.mojang.serialization.Codec;
+import com.mojang.serialization.MapCodec;
 
 import net.commoble.hyperbox.Hyperbox;
 import net.commoble.hyperbox.blocks.ApertureBlock;
@@ -48,13 +47,12 @@ public class HyperboxChunkGenerator extends ChunkGenerator
 	public static final BlockPos MAX_SPAWN_CORNER = HyperboxChunkGenerator.CORNER.offset(13,12,13);
 
 	private final Holder<Biome> biome; public Holder<Biome> biome() { return biome; }
-	
+		
 	/** get from Hyperbox.INSTANCE.hyperboxChunkGeneratorCodec.get(); **/
-	public static Codec<HyperboxChunkGenerator> makeCodec()
+	public static MapCodec<HyperboxChunkGenerator> makeCodec()
 	{
 		return Biome.CODEC.fieldOf("biome")
-			.xmap(HyperboxChunkGenerator::new, HyperboxChunkGenerator::biome)
-			.codec();
+			.xmap(HyperboxChunkGenerator::new, HyperboxChunkGenerator::biome);
 	}
 	
 	// hardcoding this for now, may reconsider later
@@ -75,7 +73,7 @@ public class HyperboxChunkGenerator extends ChunkGenerator
 
 	// get codec
 	@Override
-	protected Codec<? extends ChunkGenerator> codec()
+	protected MapCodec<? extends ChunkGenerator> codec()
 	{
 		return Hyperbox.INSTANCE.hyperboxChunkGeneratorCodec.get();
 	}
@@ -166,7 +164,7 @@ public class HyperboxChunkGenerator extends ChunkGenerator
 	}
 
 	@Override
-	public CompletableFuture<ChunkAccess> fillFromNoise(Executor executor, Blender blender, RandomState random, StructureManager structures, ChunkAccess chunk)
+	public CompletableFuture<ChunkAccess> fillFromNoise(Blender blender, RandomState random, StructureManager structures, ChunkAccess chunk)
 	{
 		// this is where the flat chunk generator generates flat chunks
 		return CompletableFuture.completedFuture(chunk);

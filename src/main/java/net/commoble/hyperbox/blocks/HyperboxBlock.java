@@ -9,14 +9,15 @@ import net.commoble.hyperbox.RotationHelper;
 import net.commoble.hyperbox.dimension.HyperboxChunkGenerator;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.component.DyedItemColor;
 import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.Level;
@@ -88,8 +89,7 @@ public class HyperboxBlock extends Block implements EntityBlock
 	}
 
 	@Override
-	@Deprecated
-	public InteractionResult use(BlockState state, Level level, BlockPos pos, Player player, InteractionHand hand, BlockHitResult hit)
+	public InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos, Player player, BlockHitResult hit)
 	{
 		if (player instanceof ServerPlayer serverPlayer
 			&& level.getBlockEntity(pos) instanceof HyperboxBlockEntity hyperbox)
@@ -107,19 +107,16 @@ public class HyperboxBlock extends Block implements EntityBlock
 		// if item was named via anvil+nametag, convert that to a TE name
 		if (level.getBlockEntity(pos) instanceof HyperboxBlockEntity hyperbox)
 		{
-			Item item = stack.getItem();
 			// setting the color on the client world ensures that the te
 			// gets its color set properly after we place it on the client
 			// so that it renders correctly
-			if (item instanceof HyperboxBlockItem hyperboxItem)
-			{
-				hyperbox.setColor(hyperboxItem.getColor(stack));
-			}
+			hyperbox.setColor(DyedItemColor.getOrDefault(stack, Hyperbox.DEFAULT_COLOR));
 			if (!level.isClientSide)
 			{
-				if (stack.hasCustomHoverName())
+				@Nullable Component name = stack.get(DataComponents.CUSTOM_NAME);
+				if (name != null)
 				{
-					hyperbox.setName(stack.getHoverName());
+					hyperbox.setName(name);
 				}
 				if (hyperbox.getLevelKey().isPresent())
 				{
@@ -130,7 +127,6 @@ public class HyperboxBlock extends Block implements EntityBlock
 	}
 
 	@Override
-	@Deprecated
 	public void onRemove(BlockState state, Level level, BlockPos pos, BlockState newState, boolean isMoving)
 	{
 		// the supercall removes the tile entity

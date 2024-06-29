@@ -6,6 +6,7 @@ import net.commoble.hyperbox.Hyperbox;
 import net.commoble.hyperbox.dimension.HyperboxSaveData;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.Connection;
 import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
@@ -30,7 +31,7 @@ public class ApertureBlockEntity extends BlockEntity
 	private int weakPower = 0;
 	private int strongPower = 0;
 	
-	private int color = HyperboxBlockItem.DEFAULT_COLOR;
+	private int color = Hyperbox.DEFAULT_COLOR;
 
 	public static ApertureBlockEntity create(BlockPos pos, BlockState state)
 	{
@@ -126,16 +127,16 @@ public class ApertureBlockEntity extends BlockEntity
 	}
 	
 	@Override
-	public void saveAdditional(CompoundTag compound)
+	public void saveAdditional(CompoundTag compound, HolderLookup.Provider registries)
 	{
-		super.saveAdditional(compound);
+		super.saveAdditional(compound, registries);
 		this.writeClientSensitiveData(compound);
 	}
 
 	@Override
-	public void load(CompoundTag nbt)
+	public void loadAdditional(CompoundTag nbt, HolderLookup.Provider registries)
 	{
-		super.load(nbt);
+		super.loadAdditional(nbt, registries);
 		this.readClientSensitiveData(nbt);
 	}
 	
@@ -143,7 +144,7 @@ public class ApertureBlockEntity extends BlockEntity
 	{
 		nbt.putInt(WEAK_POWER, this.weakPower);
 		nbt.putInt(STRONG_POWER, this.strongPower);
-		if (this.color != HyperboxBlockItem.DEFAULT_COLOR)
+		if (this.color != Hyperbox.DEFAULT_COLOR)
 		{
 			nbt.putInt(COLOR, this.color);
 		}
@@ -163,9 +164,9 @@ public class ApertureBlockEntity extends BlockEntity
 	// called on server when the TE is initially loaded on client (e.g. when client loads chunk)
 	// this is handled by this.handleUpdateTag, which just calls read()
 	@Override
-	public CompoundTag getUpdateTag()
+	public CompoundTag getUpdateTag(HolderLookup.Provider registries)
 	{
-		CompoundTag nbt = super.getUpdateTag();
+		CompoundTag nbt = super.getUpdateTag(registries);
 		this.writeClientSensitiveData(nbt);
 		return nbt;
 	}
@@ -181,13 +182,13 @@ public class ApertureBlockEntity extends BlockEntity
 
 	// called on client to read the packet sent from getUpdatePacket
 	@Override
-	public void onDataPacket(Connection net, ClientboundBlockEntityDataPacket pkt)
+	public void onDataPacket(Connection net, ClientboundBlockEntityDataPacket pkt, HolderLookup.Provider registries)
 	{
 		this.readClientSensitiveData(pkt.getTag());
 	}
 
 	@Override
-	public void handleUpdateTag(CompoundTag tag)
+	public void handleUpdateTag(CompoundTag tag, HolderLookup.Provider registries)
 	{
 		this.readClientSensitiveData(tag);
 	}

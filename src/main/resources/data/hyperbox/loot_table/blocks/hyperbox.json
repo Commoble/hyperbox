@@ -1,0 +1,29 @@
+{
+	"type": "minecraft:block",
+	"pools": 
+	[
+		{
+			"rolls": 1,
+			"entries": 
+			[
+				{
+					"type": "minecraft:item",
+					"name": "hyperbox:hyperbox",
+					"functions": 
+					[
+						{
+							"function": "copy_components",
+							"source": "block_entity",
+							"include":
+							[
+								"custom_name",
+								"dyed_color",
+								"hyperbox:world_key"
+							]
+						}
+					]
+				}
+			]
+		}
+	]
+}
