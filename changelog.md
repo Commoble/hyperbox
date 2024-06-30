@@ -1,5 +1,6 @@
 ## 6.0.0.0
 * Updated to minecraft 1.21 / neoforge 21.0.40-beta. This may not be compatible with old worlds; running worlds from older versions may result in data loss.
+* Fixed a 1.20.4 bug where parent -> child capability delegation (such as pipes inserting items into hyperboxes) wasn't working correctly
 
 ## 5.0.1.0
 * Updated how new hyperbox dimension ids are generated. They are now always have the id hyperbox:player-uuid/name, where player-uuid is the uuid of the player that created the dimension, and name is the display name of the hyperbox using only valid characters (lowercase a-z, underscores, and numbers), converting uppercase A-Z to lowercase and spaces to underscores. If the display name has no valid characters, a random uuid will be used instead.

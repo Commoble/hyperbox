@@ -192,7 +192,7 @@ public class HyperboxBlockEntity extends BlockEntity implements Nameable
 					serverLevel.invalidateCapabilities(this.getBlockPos());
 					return false;
 				});
-				return level.getCapability(sidedCap, targetPos, rotatedDirection);
+				return targetLevel.getCapability(sidedCap, targetPos, rotatedDirection);
 			}
 		}
 		return null;
