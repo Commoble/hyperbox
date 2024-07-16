@@ -1,0 +1,15 @@
+{
+	"block.hyperbox.hyperbox": "Hyperbox",
+	"block.hyperbox.hyperbox_preview": "Hyperbox",
+	"block.hyperbox.aperture": "Açıklık",
+	"menu.hyperbox": "Hyperbox Boyutu Oluştur",
+	"menu.hyperbox.edit_dimension": "Boyut ID'si",
+	"menu.hyperbox.edit_name": "Hyperbox Adı",
+	"menu.hyperbox.use_default_name_checkbox": "Varsayılan Adı Kullan",
+	"menu.hyperbox.save_and_enter": "Kaydet & Gir",
+	"menu.hyperbox.save_and_exit": "Kaydet & Çık",
+	"menu.hyperbox.dimension_id_in_use": "Boyut ID'si zaten kullanımda",
+	"menu.hyperbox.message.no_id": "Hyperbox boyutu oluşturulamadı: Eksik veya boş boyut id'si",
+	"menu.hyperbox.message.invalid_id": "Hyperbox boyutu oluşturulamadı: [a-z0-9/._-] dışında karakter bulunuyor: %s",
+	"menu.hyperbox.message.existing_id": "Hyperbox boyutu oluşturulamadı: Boyut ID'si zaten mevcut: %s"
+}
