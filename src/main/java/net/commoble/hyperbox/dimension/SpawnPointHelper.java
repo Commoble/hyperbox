@@ -31,7 +31,6 @@ public class SpawnPointHelper
 			// each block we iterate over is going to be no closer to target than any other block we've iterated over
 			// (may be the same distance as a previously iterated block)
 			BlockPos nextPos = remaining.removeFirst();
-			visited.add(nextPos);
 			int viability = getViability(world, nextPos);
 			// this is the first viability-3 block we've found
 			if (viability == 3)
@@ -57,6 +56,7 @@ public class SpawnPointHelper
 						&& isPosAllowed(world, nextPosToVisit, minSpawnCorner, maxSpawnCorner))
 					{
 						remaining.add(nextPosToVisit);
+						visited.add(nextPosToVisit);
 					}
 				}
 			}

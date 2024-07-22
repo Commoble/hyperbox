@@ -1,3 +1,7 @@
+## 6.0.0.1
+* Fixed a crash when trying to enter a hyperbox when all available space was full of blocks
+* Now requires neforge 21.0.113-beta or higher
+
 ## 6.0.0.0
 * Updated to minecraft 1.21 / neoforge 21.0.40-beta. This may not be compatible with old worlds; running worlds from older versions may result in data loss.
 * Fixed a 1.20.4 bug where parent -> child capability delegation (such as pipes inserting items into hyperboxes) wasn't working correctly
