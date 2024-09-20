@@ -10,7 +10,7 @@
 	"menu.hyperbox.save_and_enter": "Guardar y Entrar",
 	"menu.hyperbox.save_and_exit": "Guardar y Salir",
 	"menu.hyperbox.dimension_id_in_use": "ID de Dimensión ya está en uso",
-	"menu.hyperbox.message.no_id": "Fallo al crear dimensión de hyperbox: ID de dimensión faltante o vacío",
-	"menu.hyperbox.message.invalid_id": "Fallo al crear dimensión de hyperbox: Ningún carácter que no sea [a-z0-9/._-] no está permitido, encontrado en: %s",
-	"menu.hyperbox.message.existing_id": "Fallo al crear dimensión de hyperbox: ID de Dimensión ya existe: %s"
+	"menu.hyperbox.message.no_id": "Error al crear dimensión de hyperbox: ID de dimensión faltante o vacío",
+	"menu.hyperbox.message.invalid_id": "Error al crear dimensión de hyperbox: Ningún carácter que no sea [a-z0-9/._-] no está permitido, encontrado en: %s",
+	"menu.hyperbox.message.existing_id": "Error al crear dimensión de hyperbox: ID de Dimensión ya existe: %s"
 }
