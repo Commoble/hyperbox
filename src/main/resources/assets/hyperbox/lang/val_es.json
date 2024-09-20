@@ -1,16 +1,16 @@
 {
 	"block.hyperbox.hyperbox": "Hyperbox",
 	"block.hyperbox.hyperbox_preview": "Hyperbox",
-	"block.hyperbox.hyperbox_wall": "Hyperbox Wall",
-	"block.hyperbox.aperture": "Aperture",
-	"menu.hyperbox": "Create Hyperbox Dimension",
-	"menu.hyperbox.edit_dimension": "Dimension ID",
-	"menu.hyperbox.edit_name": "Hyperbox Name",
-	"menu.hyperbox.use_default_name_checkbox": "Use Default Name",
-	"menu.hyperbox.save_and_enter": "Save & Enter",
-	"menu.hyperbox.save_and_exit": "Save & Exit",
-	"menu.hyperbox.dimension_id_in_use": "Dimension ID is already in use",
-	"menu.hyperbox.message.no_id": "Failed to create hyperbox dimension: Missing or empty dimension id",
-	"menu.hyperbox.message.invalid_id": "Failed to create hyperbox dimension: Non [a-z0-9/._-] character in path of location: %s",
-	"menu.hyperbox.message.existing_id": "Failed to create hyperbox dimension: Dimension ID already exists: %s"
+	"block.hyperbox.hyperbox_wall": "Mur d'Hyperbox",
+	"block.hyperbox.aperture": "Apertura",
+	"menu.hyperbox": "Crear Dimensió d'Hyperbox",
+	"menu.hyperbox.edit_dimension": "ID de Dimensió",
+	"menu.hyperbox.edit_name": "Nom d'Hyperbox",
+	"menu.hyperbox.use_default_name_checkbox": "Usar Nom per Defecte",
+	"menu.hyperbox.save_and_enter": "Guardar i Entrar",
+	"menu.hyperbox.save_and_exit": "Guardar i Eixir",
+	"menu.hyperbox.dimension_id_in_use": "ID de Dimensió ja en ús",
+	"menu.hyperbox.message.no_id": "Error al crear dimensió d'hyperbox: ID de Dimensió faltant o buida",
+	"menu.hyperbox.message.invalid_id": "Error al crear dimensió d'hyperbox: Carácters No [a-z0-9/._-] trobats: %s",
+	"menu.hyperbox.message.existing_id": "Error al crear dimensió d'hyperbox: ID de Dimensió ja existeix: %s"
 }
