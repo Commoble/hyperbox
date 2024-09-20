@@ -1,16 +1,16 @@
 {
 	"block.hyperbox.hyperbox": "Hyperbox",
 	"block.hyperbox.hyperbox_preview": "Hyperbox",
-	"block.hyperbox.hyperbox_wall": "Hyperbox Wall",
-	"block.hyperbox.aperture": "Aperture",
-	"menu.hyperbox": "Create Hyperbox Dimension",
-	"menu.hyperbox.edit_dimension": "Dimension ID",
-	"menu.hyperbox.edit_name": "Hyperbox Name",
-	"menu.hyperbox.use_default_name_checkbox": "Use Default Name",
-	"menu.hyperbox.save_and_enter": "Save & Enter",
-	"menu.hyperbox.save_and_exit": "Save & Exit",
-	"menu.hyperbox.dimension_id_in_use": "Dimension ID is already in use",
-	"menu.hyperbox.message.no_id": "Failed to create hyperbox dimension: Missing or empty dimension id",
-	"menu.hyperbox.message.invalid_id": "Failed to create hyperbox dimension: Non [a-z0-9/._-] character in path of location: %s",
-	"menu.hyperbox.message.existing_id": "Failed to create hyperbox dimension: Dimension ID already exists: %s"
+	"block.hyperbox.hyperbox_wall": "Muro de Hyperbox",
+	"block.hyperbox.aperture": "Apertura",
+	"menu.hyperbox": "Crear Dimensión de Hyperbox",
+	"menu.hyperbox.edit_dimension": "ID de Dimensión",
+	"menu.hyperbox.edit_name": "Nombre de Hyperbox",
+	"menu.hyperbox.use_default_name_checkbox": "Usar Nombre por Defecto",
+	"menu.hyperbox.save_and_enter": "Guardar y Entrar",
+	"menu.hyperbox.save_and_exit": "Guardar y Salir",
+	"menu.hyperbox.dimension_id_in_use": "ID de Dimensión ya está en uso",
+	"menu.hyperbox.message.no_id": "Fallo al crear dimensión de hyperbox: ID de dimensión faltante o vacío",
+	"menu.hyperbox.message.invalid_id": "Fallo al crear dimensión de hyperbox: Ningún carácter que no sea [a-z0-9/._-] no está permitido, encontrado en: %s",
+	"menu.hyperbox.message.existing_id": "Fallo al crear dimensión de hyperbox: ID de Dimensión ya existe: %s"
 }
