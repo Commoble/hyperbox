@@ -1,0 +1,16 @@
+{
+	"block.hyperbox.hyperbox": "Hyperbox",
+	"block.hyperbox.hyperbox_preview": "Hyperbox",
+	"block.hyperbox.hyperbox_wall": "Muro de Hyperbox",
+	"block.hyperbox.aperture": "Apertura",
+	"menu.hyperbox": "Crear Dimensión de Hyperbox",
+	"menu.hyperbox.edit_dimension": "ID de Dimensión",
+	"menu.hyperbox.edit_name": "Nombre de Hyperbox",
+	"menu.hyperbox.use_default_name_checkbox": "Usar Nombre por Defecto",
+	"menu.hyperbox.save_and_enter": "Guardar y Entrar",
+	"menu.hyperbox.save_and_exit": "Guardar y Salir",
+	"menu.hyperbox.dimension_id_in_use": "ID de Dimensión ya está en uso",
+	"menu.hyperbox.message.no_id": "Error al crear dimensión de hyperbox: ID de dimensión faltante o vacío",
+	"menu.hyperbox.message.invalid_id": "Error al crear dimensión de hyperbox: Ningún carácter que no sea [a-z0-9/._-] no está permitido, encontrado en: %s",
+	"menu.hyperbox.message.existing_id": "Error al crear dimensión de hyperbox: ID de Dimensión ya existe: %s"
+}
