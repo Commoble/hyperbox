@@ -30,7 +30,6 @@ import net.minecraft.world.level.biome.FixedBiomeSource;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.ChunkAccess;
 import net.minecraft.world.level.chunk.ChunkGenerator;
-import net.minecraft.world.level.levelgen.GenerationStep;
 import net.minecraft.world.level.levelgen.Heightmap.Types;
 import net.minecraft.world.level.levelgen.RandomState;
 import net.minecraft.world.level.levelgen.blending.Blender;
@@ -61,7 +60,7 @@ public class HyperboxChunkGenerator extends ChunkGenerator
 	// create chunk generator at runtime when dynamic dimension is created
 	public HyperboxChunkGenerator(MinecraftServer server)
 	{
-		this(server.registryAccess().registryOrThrow(Registries.BIOME).getHolderOrThrow(Hyperbox.BIOME_KEY));
+		this(server.registryAccess().lookupOrThrow(Registries.BIOME).getOrThrow(Hyperbox.BIOME_KEY));
 	}
 
 	// create chunk generator when dimension is loaded from the dimension registry on server init
@@ -80,7 +79,7 @@ public class HyperboxChunkGenerator extends ChunkGenerator
 	
 	// apply carvers
 	@Override
-	public void applyCarvers(WorldGenRegion world, long seed, RandomState random, BiomeManager biomeManager, StructureManager structureManager, ChunkAccess chunkAccess, GenerationStep.Carving carvingStep)
+	public void applyCarvers(WorldGenRegion world, long seed, RandomState random, BiomeManager biomeManager, StructureManager structureManager, ChunkAccess chunkAccess)
 	{
 		// noop
 	}

@@ -23,14 +23,15 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.StateDefinition.Builder;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
-import net.minecraft.world.level.block.state.properties.DirectionProperty;
+import net.minecraft.world.level.block.state.properties.EnumProperty;
+import net.minecraft.world.level.redstone.Orientation;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
 
 public class ApertureBlock extends Block implements EntityBlock
 {
 	// direction of facing of aperture
-	public static final DirectionProperty FACING = BlockStateProperties.FACING;
+	public static final EnumProperty<Direction> FACING = BlockStateProperties.FACING;
 
 	public ApertureBlock(Properties properties)
 	{
@@ -72,7 +73,7 @@ public class ApertureBlock extends Block implements EntityBlock
 			Block parentBlock = parentState.getBlock();
 			if (parentBlock instanceof HyperboxBlock hyperboxBlock)
 			{
-				Direction hyperboxFacing = hyperboxBlock.getCurrentFacing(parentState, apertureFacing.getOpposite()); 
+				Direction hyperboxFacing = HyperboxBlock.getCurrentFacing(parentState, apertureFacing.getOpposite()); 
 				targetPos = parentPos.relative(hyperboxFacing);
 				if (destinationLevel.getBlockState(targetPos).getDestroySpeed(destinationLevel, targetPos) < 0)
 				{	// if this face of the exit block faces the barrier, make the initial spawn search target be the exit block instead of the adjacent position
@@ -92,31 +93,32 @@ public class ApertureBlock extends Block implements EntityBlock
 	// called after an adjacent blockstate changes	
 	@Override
 	@Deprecated
-	public void neighborChanged(BlockState thisState, Level level, BlockPos thisPos, Block fromBlock, BlockPos fromPos, boolean isMoving)
+	public void neighborChanged(BlockState thisState, Level level, BlockPos thisPos, Block fromBlock, Orientation orientation, boolean isMoving)
 	{
-		this.onNeighborUpdated(thisState, level, thisPos, level.getBlockState(fromPos), fromPos);
-		super.neighborChanged(thisState, level, thisPos, fromBlock, fromPos, isMoving);
+		this.onNeighborUpdated(thisState, level, thisPos);
+		super.neighborChanged(thisState, level, thisPos, fromBlock, orientation, isMoving);
 	}
 
 	// called when a neighboring te's data changes
 	@Override
 	public void onNeighborChange(BlockState thisState, LevelReader level, BlockPos thisPos, BlockPos neighborPos)
 	{
-		this.onNeighborUpdated(thisState, level, thisPos, level.getBlockState(neighborPos), neighborPos);
+		this.onNeighborUpdated(thisState, level, thisPos);
 		// does nothing by default
 		super.onNeighborChange(thisState, level, thisPos, neighborPos);
 	}
 	
-	protected void onNeighborUpdated(BlockState thisState, BlockGetter level, BlockPos thisPos, BlockState neighborState, BlockPos neighborPos)
+	protected void onNeighborUpdated(BlockState thisState, BlockGetter level, BlockPos thisPos)
 	{
 		if (level instanceof ServerLevel serverLevel)
 		{
 			// get power from neighbor
 			Direction directionToNeighbor = thisState.getValue(FACING);
-			int weakPower = neighborState.getSignal(level, neighborPos, directionToNeighbor);
+			BlockPos neighborPos = thisPos.relative(directionToNeighbor);
+			BlockState neighborState = level.getBlockState(neighborPos);
 			int strongPower = neighborState.getDirectSignal(level, neighborPos, directionToNeighbor);
 			getLinkedHyperbox(serverLevel,thisPos).ifPresent(hyperbox -> {
-				hyperbox.updatePower(weakPower, strongPower, directionToNeighbor.getOpposite());
+				hyperbox.updateStrongPower(strongPower, directionToNeighbor.getOpposite());
 				hyperbox.setChanged(); // invokes onNeighborChanged on adjacent blocks, so we can propagate neighbor changes, update capabilities, etc
 			});
 		}

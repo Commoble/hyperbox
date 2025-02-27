@@ -30,8 +30,8 @@ public class HyperboxDimension
 	public static Holder<DimensionType> getDimensionTypeHolder(MinecraftServer server)
 	{
 		return server.registryAccess() // get dynamic registries
-			.registryOrThrow(Registries.DIMENSION_TYPE)
-			.getHolderOrThrow(Hyperbox.DIMENSION_TYPE_KEY);
+			.lookupOrThrow(Registries.DIMENSION_TYPE)
+			.getOrThrow(Hyperbox.DIMENSION_TYPE_KEY);
 	}
 	
 	public static DimensionType getDimensionType(MinecraftServer server)

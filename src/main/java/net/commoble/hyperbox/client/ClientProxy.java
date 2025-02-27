@@ -66,7 +66,7 @@ public class ClientProxy
 	
 	private static void onRegisterItemColors(RegisterColorHandlersEvent.Item event)
 	{
-		event.register(ColorHandlers::getHyperboxItemColor, Hyperbox.INSTANCE.hyperboxItem.get());
+		event.register(ColorHandlers::getHyperboxItemColor, Hyperbox.INSTANCE.hyperboxBlock.get());
 	}
 	
 	private static void onHighlightBlock(RenderHighlightEvent.Block event)

@@ -56,7 +56,7 @@ public class BlockPreviewRenderer extends ModelBlockRenderer
 		BlockRenderDispatcher blockDispatcher = Minecraft.getInstance().getBlockRenderer();
 		ModelBlockRenderer renderer = getInstance(blockDispatcher.getModelRenderer());
 		// this render type is which buffer to render to
-		RenderType bufferType = Sheets.translucentCullBlockSheet();
+		RenderType bufferType = Sheets.translucentItemSheet();
 		// this render type is which render type to get quads for from the model
 		// null => all quads
 		RenderType renderType = null;

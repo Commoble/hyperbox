@@ -1,5 +1,7 @@
 package net.commoble.hyperbox;
 
+import java.util.function.BiFunction;
+import java.util.function.Function;
 import java.util.function.Supplier;
 
 import javax.annotation.Nonnull;
@@ -8,12 +10,19 @@ import javax.annotation.Nullable;
 import com.google.common.collect.Lists;
 import com.mojang.serialization.MapCodec;
 
+import net.commoble.exmachina.api.ExMachinaRegistries;
+import net.commoble.exmachina.api.SignalReceiver;
+import net.commoble.exmachina.api.SignalSource;
 import net.commoble.hyperbox.blocks.ApertureBlock;
 import net.commoble.hyperbox.blocks.ApertureBlockEntity;
+import net.commoble.hyperbox.blocks.ApertureReceiver;
+import net.commoble.hyperbox.blocks.ApertureSource;
 import net.commoble.hyperbox.blocks.C2SSaveHyperboxPacket;
 import net.commoble.hyperbox.blocks.HyperboxBlock;
 import net.commoble.hyperbox.blocks.HyperboxBlockEntity;
 import net.commoble.hyperbox.blocks.HyperboxMenu;
+import net.commoble.hyperbox.blocks.HyperboxReceiver;
+import net.commoble.hyperbox.blocks.HyperboxSource;
 import net.commoble.hyperbox.client.ClientProxy;
 import net.commoble.hyperbox.dimension.DelayedTeleportData;
 import net.commoble.hyperbox.dimension.HyperboxChunkGenerator;
@@ -62,6 +71,7 @@ import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.event.BuildCreativeModeTabContentsEvent;
 import net.neoforged.neoforge.event.tick.LevelTickEvent;
 import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
+import net.neoforged.neoforge.registries.DeferredHolder;
 import net.neoforged.neoforge.registries.DeferredRegister;
 import net.neoforged.neoforge.registries.NeoForgeRegistries;
 
@@ -87,7 +97,6 @@ public class Hyperbox
 	public final Supplier<HyperboxBlock> hyperboxPreviewBlock;
 	public final Supplier<ApertureBlock> apertureBlock;
 	public final Supplier<Block> hyperboxWall;
-	public final Supplier<BlockItem> hyperboxItem;
 	public final Supplier<BlockEntityType<HyperboxBlockEntity>> hyperboxBlockEntityType;
 	public final Supplier<BlockEntityType<ApertureBlockEntity>> apertureBlockEntityType;
 	public final Supplier<MenuType<HyperboxMenu>> hyperboxMenuType;
@@ -112,18 +121,27 @@ public class Hyperbox
 		DeferredRegister<MapCodec<? extends ChunkGenerator>> chunkGeneratorCodecs = defreg(modBus, Registries.CHUNK_GENERATOR);
 		DeferredRegister<AttachmentType<?>> attachmentTypes = defreg(modBus, NeoForgeRegistries.Keys.ATTACHMENT_TYPES);
 		DeferredRegister<DataComponentType<?>> dataComponentTypes = defreg(modBus, Registries.DATA_COMPONENT_TYPE);
-		
+		DeferredRegister<MapCodec<? extends SignalSource>> signalSources = Hyperbox.defreg(modBus, ExMachinaRegistries.SIGNAL_SOURCE_TYPE);
+		DeferredRegister<MapCodec<? extends SignalReceiver>> signalReceivers = Hyperbox.defreg(modBus, ExMachinaRegistries.SIGNAL_RECEIVER_TYPE);
+				
 		soundEvents.register("ambience", () -> SoundEvent.createVariableRangeEvent(id("ambience")));
 		
-		this.hyperboxBlock = blocks.register(Names.HYPERBOX, () -> new HyperboxBlock(BlockBehaviour.Properties.ofFullCopy(Blocks.PURPUR_BLOCK).strength(2F, 1200F).isRedstoneConductor(HyperboxBlock::getIsNormalCube)));
-		this.hyperboxPreviewBlock = blocks.register(Names.HYPERBOX_PREVIEW, () -> new HyperboxBlock(BlockBehaviour.Properties.ofFullCopy(Blocks.PURPUR_BLOCK).strength(2F, 1200F).isRedstoneConductor(HyperboxBlock::getIsNormalCube)));
-		this.hyperboxItem = items.register(Names.HYPERBOX, () -> new BlockItem(this.hyperboxBlock.get(), new Item.Properties()));
-		this.hyperboxBlockEntityType = tileEntities.register(Names.HYPERBOX, () -> BlockEntityType.Builder.of(HyperboxBlockEntity::create, this.hyperboxBlock.get()).build(null));
+		this.hyperboxBlock = registerBlockItem(Names.HYPERBOX, blocks, items,
+			() -> BlockBehaviour.Properties.ofFullCopy(Blocks.PURPUR_BLOCK).strength(2F, 1200F).isRedstoneConductor(HyperboxBlock::getIsNormalCube),
+			HyperboxBlock::new);
+		this.hyperboxPreviewBlock = registerBlock(Names.HYPERBOX_PREVIEW, blocks,
+			() -> BlockBehaviour.Properties.ofFullCopy(Blocks.PURPUR_BLOCK).strength(2F, 1200F).isRedstoneConductor(HyperboxBlock::getIsNormalCube),
+			HyperboxBlock::new);
+		this.hyperboxBlockEntityType = tileEntities.register(Names.HYPERBOX, () -> new BlockEntityType<>(HyperboxBlockEntity::create, this.hyperboxBlock.get()));
 		
-		this.apertureBlock = blocks.register(Names.APERTURE, () -> new ApertureBlock(BlockBehaviour.Properties.ofFullCopy(Blocks.BARRIER).mapColor(MapColor.NONE).lightLevel(state -> 6).isRedstoneConductor(HyperboxBlock::getIsNormalCube)));
-		this.apertureBlockEntityType = tileEntities.register(Names.APERTURE, () -> BlockEntityType.Builder.of(ApertureBlockEntity::create, this.apertureBlock.get()).build(null));
+		this.apertureBlock = registerBlock(Names.APERTURE, blocks,
+			() -> BlockBehaviour.Properties.ofFullCopy(Blocks.BARRIER).mapColor(MapColor.NONE).lightLevel(state -> 6).isRedstoneConductor(HyperboxBlock::getIsNormalCube),
+			ApertureBlock::new);
+		this.apertureBlockEntityType = tileEntities.register(Names.APERTURE, () -> new BlockEntityType<>(ApertureBlockEntity::create, this.apertureBlock.get()));
 		
-		this.hyperboxWall = blocks.register(Names.HYPERBOX_WALL, () -> new Block(BlockBehaviour.Properties.ofFullCopy(Blocks.BARRIER).mapColor(MapColor.NONE)));
+		this.hyperboxWall = registerBlock(Names.HYPERBOX_WALL, blocks,
+			() -> BlockBehaviour.Properties.ofFullCopy(Blocks.BARRIER).mapColor(MapColor.NONE),
+			Block::new);
 		
 		this.hyperboxMenuType = menuTypes.register(Names.HYPERBOX, () -> new MenuType<HyperboxMenu>(HyperboxMenu::makeClientMenu, FeatureFlags.VANILLA_SET));
 		
@@ -138,6 +156,11 @@ public class Hyperbox
 			.persistent(ResourceKey.codec(Registries.DIMENSION))
 			.networkSynchronized(ResourceKey.streamCodec(Registries.DIMENSION))
 			.build());
+
+		signalSources.register("hyperbox", () -> HyperboxSource.CODEC);
+		signalReceivers.register("hyperbox", () -> HyperboxReceiver.CODEC);
+		signalSources.register("aperture", () -> ApertureSource.CODEC);
+		signalReceivers.register("aperture", () -> ApertureReceiver.CODEC);
 		
 		// subscribe event handlers
 		modBus.addListener(EventPriority.LOW, this::registerDelegateCapabilities);
@@ -183,7 +206,7 @@ public class Hyperbox
 	{
 		if (event.getTabKey() == CreativeModeTabs.FUNCTIONAL_BLOCKS || event.getTabKey() == CreativeModeTabs.REDSTONE_BLOCKS)
 		{
-			event.accept(this.hyperboxItem.get());			
+			event.accept(this.hyperboxBlock.get());			
 		}
 	}
 	
@@ -296,11 +319,67 @@ public class Hyperbox
 	}
 	
 	// create and subscribe a forge DeferredRegister
-	private static <T> DeferredRegister<T> defreg(IEventBus modBus, ResourceKey<Registry<T>> registry)
+	public static <T> DeferredRegister<T> defreg(IEventBus modBus, ResourceKey<Registry<T>> registry)
 	{
 		DeferredRegister<T> register = DeferredRegister.create(registry, MODID);
 		register.register(modBus);
 		return register;
+	}
+	
+	private static <BLOCK extends Block> DeferredHolder<Block, BLOCK> registerBlock(
+		String name,
+		DeferredRegister<Block> blocks,
+		Supplier<Block.Properties> blockProperties,
+		Function<Block.Properties, BLOCK> blockFactory)
+	{
+		ResourceKey<Block> key = ResourceKey.create(Registries.BLOCK, ResourceLocation.fromNamespaceAndPath(blocks.getNamespace(), name));
+		DeferredHolder<Block, BLOCK> blockHolder = blocks.register(name, () -> blockFactory.apply(blockProperties.get().setId(key)));
+		return blockHolder;
+	}
+	
+	private static <BLOCK extends Block, ITEM extends BlockItem> DeferredHolder<Block, BLOCK> registerBlockItem(
+		String name,
+		DeferredRegister<Block> blocks,
+		DeferredRegister<Item> items,
+		Supplier<Block.Properties> blockProperties,
+		Function<Block.Properties, BLOCK> blockFactory,
+		Supplier<Item.Properties> itemProperties,
+		BiFunction<? super BLOCK, Item.Properties, ITEM> itemFactory)
+	{
+		ResourceLocation id = ResourceLocation.fromNamespaceAndPath(blocks.getNamespace(), name);
+		ResourceKey<Block> blockKey = ResourceKey.create(Registries.BLOCK, id);
+		ResourceKey<Item> itemKey = ResourceKey.create(Registries.ITEM, id);
+		DeferredHolder<Block, BLOCK> blockHolder = blocks.register(name, () -> blockFactory.apply(blockProperties.get().setId(blockKey)));
+		items.register(name, () -> itemFactory.apply(blockHolder.get(), itemProperties.get().setId(itemKey)));
+		return blockHolder;
+	}
+	
+	private static <BLOCK extends Block, ITEM extends BlockItem> DeferredHolder<Block, BLOCK> registerBlockItem(
+		String name,
+		DeferredRegister<Block> blocks,
+		DeferredRegister<Item> items,
+		Supplier<Block.Properties> blockProperties,
+		Function<Block.Properties, BLOCK> blockFactory)
+	{
+		return registerBlockItem(name, blocks, items, blockProperties, blockFactory, Item.Properties::new, BlockItem::new);
+	}
+	
+	private static <ITEM extends Item> DeferredHolder<Item, ITEM> registerItem(
+		String name,
+		DeferredRegister<Item> items,
+		Supplier<Item.Properties> itemProperties,
+		Function<Item.Properties, ITEM> itemFactory)
+	{
+		ResourceKey<Item> key = ResourceKey.create(Registries.ITEM, ResourceLocation.fromNamespaceAndPath(items.getNamespace(), name));
+		return items.register(name, () -> itemFactory.apply(itemProperties.get().setId(key)));
+	}
+	
+	private static <ITEM extends Item> DeferredHolder<Item, ITEM> registerItem(
+		String name,
+		DeferredRegister<Item> items,
+		Function<Item.Properties, ITEM> itemFactory)
+	{
+		return registerItem(name, items, Item.Properties::new, itemFactory);
 	}
 	
 	public static ResourceLocation id(String path)

@@ -1,3 +1,6 @@
+## 1.21.3-7.0.0.0
+* Now requires MC 1.21.3 / Neoforge 21.3
+
 ## 6.0.0.1
 * Fixed a crash when trying to enter a hyperbox when all available space was full of blocks
 * Now requires neforge 21.0.113-beta or higher

@@ -1,6 +1,7 @@
 package net.commoble.hyperbox.dimension;
 
 import java.util.Optional;
+import java.util.Set;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
@@ -13,7 +14,7 @@ public class TeleportHelper
 	{
 		// ensure destination chunk is loaded before we put the player in it
 		targetLevel.getChunk(new BlockPos((int)targetVec.x, (int)targetVec.y, (int)targetVec.z));
-		serverPlayer.teleportTo(targetLevel, targetVec.x(), targetVec.y(), targetVec.z(), serverPlayer.getYRot(), serverPlayer.getXRot());
+		serverPlayer.teleportTo(targetLevel, targetVec.x(), targetVec.y(), targetVec.z(), Set.of(), serverPlayer.getYRot(), serverPlayer.getXRot(), true);
 	}
 	
 	public static void ejectPlayerFromDeadWorld(ServerPlayer serverPlayer)

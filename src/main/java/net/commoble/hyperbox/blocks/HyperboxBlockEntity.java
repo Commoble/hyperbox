@@ -1,9 +1,20 @@
 package net.commoble.hyperbox.blocks;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.function.ToIntFunction;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 
+import net.commoble.exmachina.api.Channel;
+import net.commoble.exmachina.api.Face;
+import net.commoble.exmachina.api.Receiver;
+import net.commoble.exmachina.api.SignalGraphUpdateGameEvent;
 import net.commoble.hyperbox.Hyperbox;
 import net.commoble.hyperbox.dimension.DelayedTeleportData;
 import net.commoble.hyperbox.dimension.HyperboxChunkGenerator;
@@ -12,6 +23,7 @@ import net.commoble.hyperbox.dimension.HyperboxSaveData;
 import net.commoble.hyperbox.dimension.ReturnPoint;
 import net.commoble.hyperbox.dimension.SpawnPointHelper;
 import net.commoble.infiniverse.api.InfiniverseAPI;
+import net.minecraft.Util;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.HolderLookup;
@@ -29,13 +41,18 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.Mth;
 import net.minecraft.world.Nameable;
+import net.minecraft.world.item.DyeColor;
 import net.minecraft.world.item.component.DyedItemColor;
+import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.LevelReader;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.dimension.DimensionType;
+import net.minecraft.world.level.redstone.ExperimentalRedstoneUtils;
+import net.minecraft.world.level.redstone.Orientation;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.neoforge.capabilities.BlockCapability;
 import net.neoforged.neoforge.event.EventHooks;
@@ -46,6 +63,7 @@ public class HyperboxBlockEntity extends BlockEntity implements Nameable
 	public static final String NAME = "CustomName"; // consistency with vanilla custom name data
 	public static final String WEAK_POWER = "weak_power";
 	public static final String STRONG_POWER = "strong_power";
+	public static final String DIGITAL_POWER = "digital_power";
 	public static final String COLOR = "color";
 	// key to the hyperbox world stored in this te
 	private Optional<ResourceKey<Level>> levelKey = Optional.empty();
@@ -54,6 +72,41 @@ public class HyperboxBlockEntity extends BlockEntity implements Nameable
 	// power output by side index of "original"/unrotated output side (linked to the aperture on the same side of the subdimension)
 	private int[] weakPowerDUNSWE = {0,0,0,0,0,0};
 	private int[] strongPowerDUNSWE = {0,0,0,0,0,0};
+	private long[] digitalPowerDUNSWE = {0,0,0,0,0,0};
+	@SuppressWarnings("unchecked")
+	private Map<Channel, Receiver>[] receiversDUNSWE = Util.make(new Map[6], maps -> {
+		for (Direction inputSide : Direction.values()) {
+			int sideIndex = inputSide.ordinal();
+			Map<Channel,Receiver> map = new HashMap<>();
+			
+			for (DyeColor color : DyeColor.values()) {
+				map.put(Channel.single(color), new HyperboxBitwiseListener(color, inputSide, (levelAccess,power) -> this.receiveDigitalPower(inputSide, color.ordinal(), power)));
+			}
+			
+			maps[sideIndex] = map;
+		}
+	});
+	private Collection<Receiver> allReceivers = Util.make(() -> {
+		List<Receiver> receivers = new ArrayList<>();
+		for (int i=0; i<6; i++) {
+			receivers.addAll(this.receiversDUNSWE[i].values());
+		}
+		return receivers;
+	});
+	@SuppressWarnings("unchecked")
+	private Map<Channel, ToIntFunction<LevelReader>>[] suppliers = Util.make(new Map[6], maps -> {
+		for (Direction side : Direction.values())
+		{
+			int sideIndex = side.ordinal();
+			Map<Channel, ToIntFunction<LevelReader>> map = new HashMap<>();
+			for (DyeColor color : DyeColor.values())
+			{
+				int shift = color.ordinal()*4;
+				map.put(Channel.single(color), reader -> Math.max((((int)(this.digitalPowerDUNSWE[sideIndex] >> shift)) & 0xF) - 1, 0));
+			}
+			maps[sideIndex] = map;
+		}
+	});
 	
 	public static HyperboxBlockEntity create(BlockPos pos, BlockState state)
 	{
@@ -187,7 +240,7 @@ public class HyperboxBlockEntity extends BlockEntity implements Nameable
 			if (targetLevel != null)
 			{
 				BlockPos targetPos = hyperboxBlock.getPosAdjacentToAperture(this.getBlockState(), worldSpaceFace);
-				Direction rotatedDirection = hyperboxBlock.getOriginalFace(thisState, worldSpaceFace);
+				Direction rotatedDirection = HyperboxBlock.getOriginalFace(thisState, worldSpaceFace);
 				targetLevel.registerCapabilityListener(targetPos, () -> {
 					serverLevel.invalidateCapabilities(this.getBlockPos());
 					return false;
@@ -209,19 +262,17 @@ public class HyperboxBlockEntity extends BlockEntity implements Nameable
 				: Optional.empty();
 	}
 	
-	public void updatePower(int weakPower, int strongPower, Direction originalFace)
+	public void updateStrongPower(int strongPower, Direction originalFace)
 	{
 		BlockState thisState = this.getBlockState();
 		Block thisBlock = thisState.getBlock();
 		if (thisBlock instanceof HyperboxBlock hyperboxBlock)
 		{
-			Direction worldSpaceFace = hyperboxBlock.getCurrentFacing(thisState, originalFace);
+			Direction worldSpaceFace = HyperboxBlock.getCurrentFacing(thisState, originalFace);
 			int originalFaceIndex = originalFace.get3DDataValue();
-			int oldWeakPower = this.weakPowerDUNSWE[originalFaceIndex];
 			int oldStrongPower = this.strongPowerDUNSWE[originalFaceIndex];
-			if (oldWeakPower != weakPower || oldStrongPower != strongPower)
+			if (oldStrongPower != strongPower)
 			{
-				this.weakPowerDUNSWE[originalFaceIndex] = weakPower;
 				this.strongPowerDUNSWE[originalFaceIndex] = strongPower;
 				this.setChanged();	// mark te as needing its data saved
 				this.level.sendBlockUpdated(this.worldPosition, thisState, thisState, 3); // mark te as needing data synced
@@ -229,10 +280,80 @@ public class HyperboxBlockEntity extends BlockEntity implements Nameable
 				if (EventHooks.onNeighborNotify(this.level, this.worldPosition, thisState, java.util.EnumSet.of(originalFace), true).isCanceled())
 					return;
 				BlockPos adjacentPos = this.worldPosition.relative(worldSpaceFace);
-				this.level.neighborChanged(adjacentPos, thisBlock, this.worldPosition);
-				this.level.updateNeighborsAtExceptFromFacing(adjacentPos, thisBlock, worldSpaceFace.getOpposite());
+				Orientation orientation = ExperimentalRedstoneUtils.initialOrientation(this.level, worldSpaceFace, null);
+				this.level.neighborChanged(adjacentPos, thisBlock, orientation);
+				this.level.updateNeighborsAtExceptFromFacing(adjacentPos, thisBlock, worldSpaceFace.getOpposite(), orientation);
 			}
 		}
+	}
+	
+	public void receiveDigitalPower(Direction side, int color, int power)
+	{
+		if (this.getLevel() instanceof ServerLevel serverLevel)
+		{
+			HyperboxBlock.getApertureTileEntityForFace(getBlockState(), serverLevel, worldPosition, side).ifPresent(aperture -> {
+				aperture.updateDigitalPower(color, power);
+			});
+		}
+	}
+	
+	public void updateDigitalPower(Direction originalFace, int color, int power)
+	{
+		Direction side = HyperboxBlock.getCurrentFacing(this.getBlockState(), originalFace);
+		int sideIndex = side.ordinal();
+		int shift = 4*color;
+		long oldSignalOnSide = this.digitalPowerDUNSWE[sideIndex];
+		int oldSignalOnBand = ((int)(oldSignalOnSide >> (shift))) & 0xF;
+		if (oldSignalOnBand != power)
+		{
+			int newSignalOnSide = (oldSignalOnBand & ~(0xF << shift)) | (power << shift);
+			this.digitalPowerDUNSWE[sideIndex] = newSignalOnSide;
+			this.updateWeakPower(sideIndex);
+			this.setChanged();
+			this.level.sendBlockUpdated(worldPosition, getBlockState(), getBlockState(), 0);
+			SignalGraphUpdateGameEvent.scheduleSignalGraphUpdate(level, worldPosition);
+			SignalGraphUpdateGameEvent.scheduleSignalGraphUpdate(level, worldPosition.relative(side));
+		}
+	}
+	
+	public void receiveDigitalPower(Direction side, long newPower)
+	{
+		if (this.getLevel() instanceof ServerLevel serverLevel)
+		{
+			HyperboxBlock.getApertureTileEntityForFace(getBlockState(), serverLevel, worldPosition, side).ifPresent(aperture -> {
+				aperture.updateDigitalPower(newPower);
+			});
+		}
+	}
+	
+	public void updateDigitalPower(Direction originalFace, long newPower)
+	{
+		Direction side = HyperboxBlock.getCurrentFacing(getBlockState(), originalFace);
+		int sideIndex = side.ordinal();
+		long oldPower = this.digitalPowerDUNSWE[sideIndex];
+		if (oldPower != newPower)
+		{
+			this.digitalPowerDUNSWE[sideIndex] = newPower;
+			this.updateWeakPower(sideIndex);
+			this.setChanged();;
+			this.level.sendBlockUpdated(worldPosition, getBlockState(), getBlockState(), 0);
+			SignalGraphUpdateGameEvent.scheduleSignalGraphUpdate(level, worldPosition);
+			SignalGraphUpdateGameEvent.scheduleSignalGraphUpdate(level, worldPosition.relative(side));
+		}
+	}
+	
+	public void updateWeakPower(int side)
+	{
+		long signalOnSide = this.digitalPowerDUNSWE[side];
+		int maxSignal = 0;
+		for (int band=0; band<16; band++)
+		{
+			int bandPower = ((int)(signalOnSide >> (4*band))) & 0xF;
+			if (bandPower > maxSignal) {
+				maxSignal = bandPower;
+			}
+		}
+		this.weakPowerDUNSWE[side] = maxSignal;
 	}
 	
 	public void teleportPlayerOrOpenMenu(ServerPlayer serverPlayer, Direction faceActivated)
@@ -293,8 +414,9 @@ public class HyperboxBlockEntity extends BlockEntity implements Nameable
 		{
 			nbt.putInt(COLOR, this.color);
 		}
-		nbt.putIntArray(WEAK_POWER, this.weakPowerDUNSWE);
-		nbt.putIntArray(STRONG_POWER, this.strongPowerDUNSWE);
+		nbt.putIntArray(WEAK_POWER, Arrays.copyOf(this.weakPowerDUNSWE, 6));
+		nbt.putIntArray(STRONG_POWER, Arrays.copyOf(this.strongPowerDUNSWE, 6));
+		nbt.putLongArray(DIGITAL_POWER, Arrays.copyOf(this.digitalPowerDUNSWE, 6));
 		return nbt;
 	}
 	
@@ -306,8 +428,9 @@ public class HyperboxBlockEntity extends BlockEntity implements Nameable
 		this.color = nbt.contains(COLOR)
 			? nbt.getInt(COLOR)
 			: Hyperbox.DEFAULT_COLOR;
-		this.weakPowerDUNSWE = nbt.getIntArray(WEAK_POWER);
-		this.strongPowerDUNSWE = nbt.getIntArray(STRONG_POWER);
+		this.digitalPowerDUNSWE = Arrays.copyOf(nbt.getLongArray(DIGITAL_POWER), 6);
+		this.strongPowerDUNSWE = Arrays.copyOf(nbt.getIntArray(STRONG_POWER), 6);
+		this.weakPowerDUNSWE = Arrays.copyOf(nbt.getIntArray(WEAK_POWER), 6);
 	}
 
 	// called on server when the TE is initially loaded on client (e.g. when client loads chunk)
@@ -358,4 +481,45 @@ public class HyperboxBlockEntity extends BlockEntity implements Nameable
     	}
     	this.levelKey.ifPresent(key -> builder.set(Hyperbox.INSTANCE.worldKeyDataComponent.get(), key));
     }
+
+	public @Nullable Receiver getReceiverEndpoint(BlockGetter level, BlockPos receiverPos, BlockState receiverState, Direction receiverSide,
+		Face connectedFace, Channel channel)
+	{
+		Direction directionToNeighbor = Direction.getNearest(connectedFace.pos().subtract(receiverPos), null);
+		if (directionToNeighbor != null
+			&& receiverPos.relative(directionToNeighbor).equals(connectedFace.pos()))
+		{
+			return this.receiversDUNSWE[directionToNeighbor.ordinal()].get(channel);	
+		}
+		return null;
+	}
+
+	public Collection<Receiver> getAllReceivers(BlockGetter level, BlockPos receiverPos, BlockState receiverState, Channel channel)
+	{
+		return this.allReceivers;
+	}
+
+	public void resetUnusedReceivers(List<HyperboxBitwiseListener> listeners)
+	{
+		long[] newSignalsDUNSWE = Arrays.copyOf(this.digitalPowerDUNSWE, 6);
+		for (HyperboxBitwiseListener listener : listeners)
+		{
+			Direction dir = listener.inputSide();
+			DyeColor color = listener.color();
+			int sideIndex = dir.ordinal();
+			int shift = 4*color.ordinal();
+			long oldSignal = newSignalsDUNSWE[sideIndex];
+			long newSignal = (oldSignal &= ~(0xF << shift));
+			newSignalsDUNSWE[sideIndex] = newSignal;
+		}
+		for (Direction side : Direction.values())
+		{
+			this.receiveDigitalPower(side, newSignalsDUNSWE[side.ordinal()]);
+		}
+	}
+
+	public Map<Channel, ToIntFunction<LevelReader>> getSupplierEndpoints(Direction directionToNeighbor)
+	{
+		return this.suppliers[directionToNeighbor.ordinal()];
+	}
 }

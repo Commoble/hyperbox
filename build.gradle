@@ -58,7 +58,7 @@ repositories {
 	maven {url = "https://dvs1.progwml6.com/files/maven/"}
 	maven {url = "https://modmaven.dev"}
 	maven {url = "https://cursemaven.com"}
-	maven {url = "https://commoble.net/maven/"}
+	maven {url = "https://maven.commoble.net"}
 }
 
 dependencies {
@@ -66,6 +66,9 @@ dependencies {
 
 	implementation "net.commoble.infiniverse:${infiniverse_mc_version}:${infiniverse_version}"
 	jarJar(group: "net.commoble.infiniverse", name: "${infiniverse_mc_version}", version: "[${infiniverse_min_version}, ${infiniverse_max_version})")
+	implementation "net.commoble.exmachina:${exmachina_mc_version}:${exmachina_version}"
+	jarJar(group: "net.commoble.exmachina", name: "${exmachina_mc_version}", version: "${exmachina_min_version}, ${exmachina_max_version})")
+	implementation "curse.maven:morered-387638:5868427"
 }
 
 tasks.jarJar.configure {
