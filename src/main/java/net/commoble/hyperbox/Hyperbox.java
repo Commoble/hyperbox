@@ -11,18 +11,15 @@ import com.google.common.collect.Lists;
 import com.mojang.serialization.MapCodec;
 
 import net.commoble.exmachina.api.ExMachinaRegistries;
-import net.commoble.exmachina.api.SignalReceiver;
-import net.commoble.exmachina.api.SignalSource;
+import net.commoble.exmachina.api.SignalComponent;
 import net.commoble.hyperbox.blocks.ApertureBlock;
 import net.commoble.hyperbox.blocks.ApertureBlockEntity;
-import net.commoble.hyperbox.blocks.ApertureReceiver;
-import net.commoble.hyperbox.blocks.ApertureSource;
+import net.commoble.hyperbox.blocks.ApertureSignalComponent;
 import net.commoble.hyperbox.blocks.C2SSaveHyperboxPacket;
 import net.commoble.hyperbox.blocks.HyperboxBlock;
 import net.commoble.hyperbox.blocks.HyperboxBlockEntity;
 import net.commoble.hyperbox.blocks.HyperboxMenu;
-import net.commoble.hyperbox.blocks.HyperboxReceiver;
-import net.commoble.hyperbox.blocks.HyperboxSource;
+import net.commoble.hyperbox.blocks.HyperboxSignalComponent;
 import net.commoble.hyperbox.client.ClientProxy;
 import net.commoble.hyperbox.dimension.DelayedTeleportData;
 import net.commoble.hyperbox.dimension.HyperboxChunkGenerator;
@@ -121,8 +118,7 @@ public class Hyperbox
 		DeferredRegister<MapCodec<? extends ChunkGenerator>> chunkGeneratorCodecs = defreg(modBus, Registries.CHUNK_GENERATOR);
 		DeferredRegister<AttachmentType<?>> attachmentTypes = defreg(modBus, NeoForgeRegistries.Keys.ATTACHMENT_TYPES);
 		DeferredRegister<DataComponentType<?>> dataComponentTypes = defreg(modBus, Registries.DATA_COMPONENT_TYPE);
-		DeferredRegister<MapCodec<? extends SignalSource>> signalSources = Hyperbox.defreg(modBus, ExMachinaRegistries.SIGNAL_SOURCE_TYPE);
-		DeferredRegister<MapCodec<? extends SignalReceiver>> signalReceivers = Hyperbox.defreg(modBus, ExMachinaRegistries.SIGNAL_RECEIVER_TYPE);
+		DeferredRegister<MapCodec<? extends SignalComponent>> signalSources = Hyperbox.defreg(modBus, ExMachinaRegistries.SIGNAL_COMPONENT_TYPE);
 				
 		soundEvents.register("ambience", () -> SoundEvent.createVariableRangeEvent(id("ambience")));
 		
@@ -157,10 +153,8 @@ public class Hyperbox
 			.networkSynchronized(ResourceKey.streamCodec(Registries.DIMENSION))
 			.build());
 
-		signalSources.register("hyperbox", () -> HyperboxSource.CODEC);
-		signalReceivers.register("hyperbox", () -> HyperboxReceiver.CODEC);
-		signalSources.register("aperture", () -> ApertureSource.CODEC);
-		signalReceivers.register("aperture", () -> ApertureReceiver.CODEC);
+		signalSources.register("hyperbox", () -> HyperboxSignalComponent.CODEC);
+		signalSources.register("aperture", () -> ApertureSignalComponent.CODEC);
 		
 		// subscribe event handlers
 		modBus.addListener(EventPriority.LOW, this::registerDelegateCapabilities);

@@ -181,7 +181,14 @@ public class HyperboxBlock extends Block implements EntityBlock
 	@Deprecated
 	public void neighborChanged(BlockState thisState, Level level, BlockPos thisPos, Block fromBlock, Orientation orientation, boolean isMoving)
 	{
-		this.onNeighborUpdated(thisState, level, thisPos);
+		if (level instanceof ServerLevel serverLevel)
+		{
+			for (Direction directionToNeighbor : Direction.values())
+			{
+				BlockPos neighborPos = thisPos.relative(directionToNeighbor);
+				onNeighborUpdated(thisState, serverLevel, thisPos, neighborPos, directionToNeighbor);
+			}
+		}
 		super.neighborChanged(thisState, level, thisPos, fromBlock, orientation, isMoving);
 	}
 
@@ -189,26 +196,24 @@ public class HyperboxBlock extends Block implements EntityBlock
 	@Override
 	public void onNeighborChange(BlockState thisState, LevelReader level, BlockPos thisPos, BlockPos neighborPos)
 	{
-		this.onNeighborUpdated(thisState, level, thisPos);
+		if (!(level instanceof ServerLevel serverLevel))
+			return;
+		BlockPos offsetToNeighbor = neighborPos.subtract(thisPos);
+		@Nullable Direction directionToNeighbor = Direction.getNearest(offsetToNeighbor.getX(), offsetToNeighbor.getY(), offsetToNeighbor.getZ(), null);
+		if (directionToNeighbor != null)
+		{
+			this.onNeighborUpdated(thisState, serverLevel, thisPos, neighborPos, directionToNeighbor);
+		}
 		// does nothing by default
 		super.onNeighborChange(thisState, level, thisPos, neighborPos);
 	}
 	
-	protected void onNeighborUpdated(BlockState thisState, BlockGetter level, BlockPos thisPos)
+	protected void onNeighborUpdated(BlockState thisState, ServerLevel serverLevel, BlockPos thisPos, BlockPos neighborPos, Direction directionToNeighbor)
 	{
-		if (level instanceof ServerLevel serverLevel)
-		{
-			for (Direction directionToNeighbor : Direction.values())
-			{
-				BlockPos neighborPos = thisPos.relative(directionToNeighbor);
-				BlockState neighborState = level.getBlockState(neighborPos);
-				getApertureTileEntityForFace(thisState, serverLevel,thisPos,directionToNeighbor).ifPresent(te -> {
-					te.updateStrongPower(serverLevel, neighborPos, neighborState, directionToNeighbor);
-					te.setChanged(); // invokes onNeighborChanged on adjacent blocks, so we can propagate neighbor changes, update capabilities, etc
-				});
-			}
-		}
-		
+		getApertureTileEntityForFace(thisState, serverLevel,thisPos,directionToNeighbor).ifPresent(te -> {
+			te.updatePower(serverLevel, neighborPos, serverLevel.getBlockState(neighborPos), directionToNeighbor);
+			te.setChanged(); // invokes onNeighborChanged on adjacent blocks, so we can propagate neighbor changes, update capabilities, etc
+		});	
 	}
 	
 	public static void notifyNeighborsOfStrongSignalChange(BlockState state, Level world, BlockPos pos)

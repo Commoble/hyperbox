@@ -77,6 +77,7 @@ public class HyperboxSaveData extends SavedData
 			if (thisWorld.getBlockEntity(aperturePos) instanceof ApertureBlockEntity aperture)
 			{
 				aperture.setColor(color);
+				aperture.resetTransmissionNodes();
 			}
 		}
 		this.setDirty();

@@ -1,41 +1,37 @@
 package net.commoble.hyperbox.blocks;
 
-import java.util.Map;
-import java.util.function.ToIntFunction;
+import java.util.Collection;
+import java.util.List;
 
 import com.mojang.serialization.MapCodec;
 
 import net.commoble.exmachina.api.Channel;
-import net.commoble.exmachina.api.Face;
-import net.commoble.exmachina.api.SignalSource;
+import net.commoble.exmachina.api.SignalComponent;
+import net.commoble.exmachina.api.TransmissionNode;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.Direction;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.level.BlockGetter;
-import net.minecraft.world.level.LevelReader;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
 
-public enum HyperboxSource implements SignalSource
+public enum HyperboxSignalComponent implements SignalComponent
 {
 	INSTANCE;
-	public static final MapCodec<? extends HyperboxSource> CODEC = MapCodec.unit(INSTANCE);
+	public static final MapCodec<? extends HyperboxSignalComponent> CODEC = MapCodec.unit(INSTANCE);
 
 	@Override
-	public MapCodec<? extends SignalSource> codec()
+	public MapCodec<? extends SignalComponent> codec()
 	{
 		return CODEC;
 	}
 
 	@Override
-	public Map<Channel, ToIntFunction<LevelReader>> getSupplierEndpoints(BlockGetter level, BlockPos supplierPos, BlockState supplierState, Direction supplierSide,
-		Face connectedFace)
+	public Collection<TransmissionNode> getTransmissionNodes(ResourceKey<Level> levelKey, BlockGetter level, BlockPos pos, BlockState state, Channel channel)
 	{
-		Direction directionToNeighbor = Direction.getNearest(connectedFace.pos().subtract(supplierPos), null);
-		if (level.getBlockEntity(supplierPos) instanceof HyperboxBlockEntity hyperbox
-			&& directionToNeighbor != null && supplierPos.relative(directionToNeighbor).equals(connectedFace.pos()))
+		if (level.getBlockEntity(pos) instanceof HyperboxBlockEntity hyperbox)
 		{
-			return hyperbox.getSupplierEndpoints(directionToNeighbor);
+			return hyperbox.getTransmissionNodes(levelKey, level, pos, state, channel);
 		}
-		return null;
+		return List.of();
 	}
-
 }

@@ -71,7 +71,7 @@ public class ApertureBlock extends Block implements EntityBlock
 			Direction apertureFacing = state.getValue(FACING);
 			BlockState parentState = destinationLevel.getBlockState(parentPos);
 			Block parentBlock = parentState.getBlock();
-			if (parentBlock instanceof HyperboxBlock hyperboxBlock)
+			if (parentBlock instanceof HyperboxBlock)
 			{
 				Direction hyperboxFacing = HyperboxBlock.getCurrentFacing(parentState, apertureFacing.getOpposite()); 
 				targetPos = parentPos.relative(hyperboxFacing);
@@ -116,9 +116,10 @@ public class ApertureBlock extends Block implements EntityBlock
 			Direction directionToNeighbor = thisState.getValue(FACING);
 			BlockPos neighborPos = thisPos.relative(directionToNeighbor);
 			BlockState neighborState = level.getBlockState(neighborPos);
+			int weakPower = neighborState.getSignal(level, neighborPos, directionToNeighbor);
 			int strongPower = neighborState.getDirectSignal(level, neighborPos, directionToNeighbor);
 			getLinkedHyperbox(serverLevel,thisPos).ifPresent(hyperbox -> {
-				hyperbox.updateStrongPower(strongPower, directionToNeighbor.getOpposite());
+				hyperbox.updatePower(weakPower, strongPower, directionToNeighbor.getOpposite());
 				hyperbox.setChanged(); // invokes onNeighborChanged on adjacent blocks, so we can propagate neighbor changes, update capabilities, etc
 			});
 		}
