@@ -197,6 +197,42 @@ public class HyperboxBlockEntity extends BlockEntity implements Nameable
 		}
 		return null;
 	}
+
+	/**
+	 * Handle unsided (Void-context) capabilities like AE2's IN_WORLD_GRID_NODE_HOST.
+	 * These capabilities don't specify a face direction, so we delegate to the block
+	 * adjacent to a default aperture (DOWN face) in the subdimension. This allows
+	 * mods that use unsided capabilities for neighbor discovery (e.g. AE2 grid nodes)
+	 * to see through the hyperbox boundary.
+	 */
+	@Nullable
+	public <T> T getUnsidedCapability(BlockCapability<T, Void> unsidedCap)
+	{
+		BlockState thisState = this.getBlockState();
+		Block thisBlock = thisState.getBlock();
+		if (thisBlock instanceof HyperboxBlock hyperboxBlock && this.level instanceof ServerLevel serverLevel)
+		{
+			ServerLevel targetLevel = this.getLevelIfKeySet(serverLevel.getServer());
+			if (targetLevel != null)
+			{
+				// For unsided caps, delegate to the block adjacent to the aperture
+				// on the face that the querying block is on. Since we don't know
+				// which face is being queried, iterate all 6 faces and return the
+				// first non-null capability found.
+				for (Direction face : Direction.values())
+				{
+					BlockPos targetPos = hyperboxBlock.getPosAdjacentToAperture(thisState, face);
+					targetLevel.registerCapabilityListener(targetPos, () -> {
+						serverLevel.invalidateCapabilities(this.getBlockPos());
+						return false;
+					});
+					T cap = targetLevel.getCapability(unsidedCap, targetPos, null);
+					if (cap != null) return cap;
+				}
+			}
+		}
+		return null;
+	}
 	
 	public Optional<ApertureBlockEntity> getAperture(MinecraftServer server, Direction sideOfChildLevel)
 	{

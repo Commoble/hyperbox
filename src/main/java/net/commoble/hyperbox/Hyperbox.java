@@ -156,21 +156,42 @@ public class Hyperbox
 	
 	private void registerDelegateCapabilities(RegisterCapabilitiesEvent event)
 	{
+		// AE2 quantum gates: each face gets its own grid node on both sides,
+		// linked by a quantum-style connection. IN_WORLD_GRID_NODE_HOST must
+		// NOT go through generic delegation — that leaks cross-dimensional
+		// grid nodes and causes duplicate-connection crashes. The bridge
+		// registers its own handler and the generic loop skips that capability.
+		BlockCapability<?,?> ae2Cap = null;
+		if (net.neoforged.fml.ModList.get().isLoaded("ae2"))
+		{
+			ae2Cap = net.commoble.hyperbox.ae2.HyperboxGridBridge.register(event,
+				hyperboxBlockEntityType.get(), apertureBlockEntityType.get());
+		}
 		for (var blockCapability : BlockCapability.getAll())
 		{
-			genericallyRegisterBlockCap(event, blockCapability);
+			if (blockCapability != ae2Cap)
+				genericallyRegisterBlockCap(event, blockCapability);
 		}
 	}
 	
 	@SuppressWarnings("unchecked")
 	private <T,C> void genericallyRegisterBlockCap(RegisterCapabilitiesEvent event, BlockCapability<T,C> blockCap)
 	{
-		event.registerBlockEntity(blockCap, hyperboxBlockEntityType.get(), (be, context) -> context instanceof Direction direction
-			? be.getCapability((BlockCapability<T,Direction>)blockCap, direction)
-			: null);
-		event.registerBlockEntity(blockCap, apertureBlockEntityType.get(), (be, context) -> context instanceof Direction direction
-			? be.getCapability((BlockCapability<T,Direction>)blockCap, direction)
-			: null);
+		event.registerBlockEntity(blockCap, hyperboxBlockEntityType.get(), (be, context) -> {
+			if (context instanceof Direction direction)
+				return be.getCapability((BlockCapability<T,Direction>)blockCap, direction);
+			// Handle unsided (Void-context) capabilities
+			if (context == null)
+				return be.getUnsidedCapability((BlockCapability<T,Void>)blockCap);
+			return null;
+		});
+		event.registerBlockEntity(blockCap, apertureBlockEntityType.get(), (be, context) -> {
+			if (context instanceof Direction direction)
+				return be.getCapability((BlockCapability<T,Direction>)blockCap, direction);
+			if (context == null)
+				return be.getUnsidedCapability((BlockCapability<T,Void>)blockCap);
+			return null;
+		});
 	}
 	
 	private void onRegisterPayloads(RegisterPayloadHandlersEvent event)

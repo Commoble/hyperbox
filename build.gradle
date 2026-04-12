@@ -3,7 +3,7 @@ plugins {
 	id 'eclipse'
 	id 'idea'
 	id 'maven-publish'
-	id 'net.neoforged.gradle.userdev' version "7.0.+"
+	id 'net.neoforged.gradle.userdev' version "7.1.20"
 }
 
 version = "${mod_version}"
@@ -21,21 +21,21 @@ sourceSets {
 
 runs {
 	configureEach {
-		systemProperty 'forge.logging.console.level', 'debug'
+		systemProperty 'neoforge.logging.console.level', 'debug'
 		modSource project.sourceSets.main
 	}
 
 	client {
 		// Comma-separated list of namespaces to load gametests from. Empty = all namespaces.
-		systemProperty 'forge.enabledGameTestNamespaces', project.modid
+		systemProperty 'neoforge.enabledGameTestNamespaces', project.modid
 	}
 
 	server {
-		systemProperty 'forge.enabledGameTestNamespaces', project.modid
+		systemProperty 'neoforge.enabledGameTestNamespaces', project.modid
 	}
 	
 	gameTestServer {
-		systemProperty 'forge.enabledGameTestNamespaces', project.modid
+		systemProperty 'neoforge.enabledGameTestNamespaces', project.modid
 	}
 
 	data {
@@ -66,6 +66,9 @@ dependencies {
 
 	implementation "net.commoble.infiniverse:${infiniverse_mc_version}:${infiniverse_version}"
 	jarJar(group: "net.commoble.infiniverse", name: "${infiniverse_mc_version}", version: "[${infiniverse_min_version}, ${infiniverse_max_version})")
+
+	// AE2 — optional compile dependency for grid bridge compat
+	compileOnly("org.appliedenergistics:appliedenergistics2:${ae2_version}") { transitive = false }
 }
 
 tasks.jarJar.configure {
