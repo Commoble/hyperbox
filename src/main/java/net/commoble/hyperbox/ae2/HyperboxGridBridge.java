@@ -101,8 +101,8 @@ public class HyperboxGridBridge {
 
         private void ensureNodeCreated() {
             if (!nodeCreated && !be.isRemoved() && be.getLevel() instanceof ServerLevel) {
+                nodeCreated = true; // set BEFORE create() to prevent reentrant calls
                 mainNode.create(be.getLevel(), be.getBlockPos());
-                nodeCreated = true;
             }
         }
 
