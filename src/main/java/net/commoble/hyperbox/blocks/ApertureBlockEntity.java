@@ -74,6 +74,42 @@ public class ApertureBlockEntity extends BlockEntity
 		}
 		return null;
 	}
+
+	/**
+	 * Handle unsided (Void-context) capabilities — delegates to the block adjacent
+	 * to the parent hyperbox on the corresponding face.
+	 */
+	@Nullable
+	public <T> T getUnsidedCapability(BlockCapability<T, Void> unsidedCap)
+	{
+		if (this.level instanceof ServerLevel serverLevel)
+		{
+			MinecraftServer server = serverLevel.getServer();
+			HyperboxSaveData data = HyperboxSaveData.getOrCreate(serverLevel);
+			BlockPos parentPos = data.getParentPos();
+			ResourceKey<Level> parentLevelKey = data.getParentWorld();
+			ServerLevel parentLevel = server.getLevel(parentLevelKey);
+			if (parentLevel != null)
+			{
+				BlockState parentState = parentLevel.getBlockState(parentPos);
+				Block parentBlock = parentState.getBlock();
+				if (parentBlock instanceof HyperboxBlock hyperboxBlock)
+				{
+					parentLevel.registerCapabilityListener(parentPos, () -> {
+						serverLevel.invalidateCapabilities(this.getBlockPos());
+						return false;
+					});
+					// Get the aperture's facing direction and find the corresponding
+					// hyperbox face in the parent world
+					Direction side = this.getBlockState().getValue(ApertureBlock.FACING);
+					Direction hyperboxFace = hyperboxBlock.getCurrentFacing(parentState, side.getOpposite());
+					BlockPos delegatePos = parentPos.relative(hyperboxFace);
+					return parentLevel.getCapability(unsidedCap, delegatePos, null);
+				}
+			}
+		}
+		return null;
+	}
 	
 	public int getColor()
 	{
