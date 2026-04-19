@@ -157,6 +157,7 @@ public class ApertureBlock extends Block implements EntityBlock
 		BlockPos parentPos = data.getParentPos();
 		ResourceKey<Level> parentLevelKey = data.getParentWorld();
 		ServerLevel parentLevel = server.getLevel(parentLevelKey);
+		if (parentLevel == null) return Optional.empty();
 		BlockEntity blockEntity = parentLevel.getBlockEntity(parentPos);
 		return blockEntity instanceof HyperboxBlockEntity hyperbox ? Optional.of(hyperbox) : Optional.empty();
 	}
